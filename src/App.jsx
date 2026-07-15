@@ -10,11 +10,13 @@ import { Header, CartDrawer, MobileBottomNav } from './components/layout'
 import SupportChat from './components/support/SupportChat'
 import AppRoutes from './routes/AppRoutes'
 
+const routerBasename = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') || '/'
+
 function App() {
   return (
     <AuthProvider>
       <ShopProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={routerBasename === '/' ? undefined : routerBasename}>
           <Header />
           <AppRoutes />
           <CartDrawer />

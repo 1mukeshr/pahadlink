@@ -7,6 +7,8 @@
     "start": "concurrently -n web,api -c green,cyan \"npm run dev\" \"npm run server\"",
     "dev": "vite",
     "build": "vite build",
+    "build:pages": "vite build && node scripts/pages-spa-fallback.js",
+    "deploy": "npm run build:pages && npx --yes gh-pages -d dist -b gh-pages",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node server/index.js",
