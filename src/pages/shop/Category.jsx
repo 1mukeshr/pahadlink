@@ -1,0 +1,197 @@
+import { useEffect, useMemo } from 'react'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import Breadcrumb from '../../components/layout/Breadcrumb'
+import Footer from '../../components/layout/Footer'
+import ProductCard from '../../components/products/ProductCard'
+import { ROUTES, categoryPath } from '../../config'
+import { CategoryIcon, ArrowRightIcon } from '../../components/icons'
+import {
+  getCategoryBanner,
+  getCategoryById,
+  getProductsByCategory,
+  getRelatedCategories,
+} from '../../data/siteData'
+
+const CategoryPage = () => {
+  const { id } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const typeParam = searchParams.get('type') || searchParams.get('sub') || ''
+
+  const category = useMemo(() => getCategoryById(id), [id])
+
+  const products = useMemo(
+    () =>
+      getProductsByCategory(id, {
+        subcategory: typeParam || undefined,
+      }),
+    [id, typeParam]
+  )
+
+  const relatedCategories = useMemo(() => getRelatedCategories(id, 4), [id])
+  const banner = useMemo(() => getCategoryBanner(id), [id])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [id])
+
+  if (!category) {
+    return <Navigate to={ROUTES.SHOP} replace />
+  }
+
+  const setType = (nextType) => {
+    if (!nextType) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    setSearchParams({ type: nextType }, { replace: true })
+  }
+
+  const breadcrumbItems = [
+    { label: 'Shop', to: ROUTES.SHOP },
+    { label: category.name },
+  ]
+
+  return (
+    <>
+      <main className="category-page">
+        <section
+          className="category-hero"
+          data-category={category.id}
+          aria-labelledby="category-hero-title"
+        >
+          <div className="container category-hero__inner">
+            {banner?.image && (
+              <div className="category-hero__banner">
+                <img
+                  src={banner.image}
+                  alt={banner.alt}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                />
+              </div>
+            )}
+
+            <div className="category-hero__head">
+              <Breadcrumb
+                items={breadcrumbItems}
+                className="category-hero__breadcrumb"
+              />
+              <h1 id="category-hero-title">{category.name}</h1>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="category-products"
+          className="category-products"
+          aria-label={`${category.name} products`}
+        >
+          <div className="container">
+            <div className="category-chips" role="tablist" aria-label="Subcategories">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!typeParam}
+                className={`category-chip${!typeParam ? ' is-active' : ''}`}
+                onClick={() => setType('')}
+              >
+                All
+              </button>
+              {category.items.map((item) => {
+                const active =
+                  typeParam.trim().toLowerCase() ===
+                  item.name.trim().toLowerCase()
+                return (
+                  <button
+                    key={item.name}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={`category-chip${active ? ' is-active' : ''}`}
+                    onClick={() => setType(item.name)}
+                  >
+                    {item.name}
+                  </button>
+                )
+              })}
+            </div>
+
+            {products.length === 0 ? (
+              <div className="category-empty">
+                <h2>No products in this filter yet</h2>
+                <p>Try another type, or browse the full shop for more picks.</p>
+                <div className="category-empty__actions">
+                  <button
+                    type="button"
+                    className="btn-hero-primary"
+                    onClick={() => setType('')}
+                  >
+                    Show all in {category.name}
+                  </button>
+                  <Link to={ROUTES.SHOP} className="category-hero__secondary">
+                    View all products
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="product-grid category-product-grid">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
+
+            {relatedCategories.length > 0 && (
+              <div className="category-related">
+                <div className="category-related__head">
+                  <div>
+                    <h2>Related categories</h2>
+                    <p>Explore more authentic picks from the hills.</p>
+                  </div>
+                  <Link to={ROUTES.SHOP} className="category-related__all">
+                    View shop
+                    <ArrowRightIcon size={14} />
+                  </Link>
+                </div>
+                <div className="category-related__grid">
+                  {relatedCategories.map((group) => (
+                    <Link
+                      key={group.id}
+                      to={categoryPath(group.id)}
+                      className="category-related__card"
+                    >
+                      <span className="category-related__media">
+                        {group.cover ? (
+                          <img
+                            src={group.cover}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <span className="category-related__fallback">
+                            <CategoryIcon name={group.id} size={22} />
+                          </span>
+                        )}
+                      </span>
+                      <span className="category-related__body">
+                        <strong>{group.name}</strong>
+                        <em>
+                          {group.count} product{group.count === 1 ? '' : 's'}
+                        </em>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
+export default CategoryPage
