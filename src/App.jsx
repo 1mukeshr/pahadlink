@@ -4,7 +4,7 @@
  * Config: src/config/index.js
  *
  * HashRouter works reliably on GitHub project Pages
- * (https://user.github.io/repo/#/...).
+ * (https://1mukeshr.github.io/pahadlink/#/...).
  */
 import { HashRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'

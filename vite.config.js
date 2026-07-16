@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Project Pages URL: https://1mukeshr.github.io/uk-ecommerce/
-const PAGES_BASE = '/uk-ecommerce/'
+// Project Pages URL: https://1mukeshr.github.io/pahadlink/
+const PAGES_BASE = '/pahadlink/'
 
 export default defineConfig(({ command }) => ({
   // Absolute base avoids broken asset URLs on GitHub Pages.

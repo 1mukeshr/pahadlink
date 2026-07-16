@@ -29,7 +29,7 @@ GitHub Pages is **static** — it cannot run Express or MongoDB. You need a host
 
 ### 2) Deploy API on Render
 
-1. Open [render.com/deploy?repo=https://github.com/1mukeshr/uk-ecommerce](https://render.com/deploy?repo=https://github.com/1mukeshr/uk-ecommerce)  
+1. Open [render.com/deploy?repo=https://github.com/1mukeshr/pahadlink](https://render.com/deploy?repo=https://github.com/1mukeshr/pahadlink)  
    or Render → **New** → **Blueprint** → this repo (`render.yaml`)
 2. Set:
    - `MONGODB_URI` = Atlas URI above
@@ -45,7 +45,7 @@ GitHub Pages is **static** — it cannot run Express or MongoDB. You need a host
    - Value: `https://YOUR-SERVICE.onrender.com/api`  (must end with `/api`)
 3. Push to `main` (or re-run **Deploy GitHub Pages** workflow)
 
-Live site: https://1mukeshr.github.io/uk-ecommerce/
+Live site: https://1mukeshr.github.io/pahadlink/
 
 > Free Render services sleep after idle. First login after sleep can take ~30–50 seconds.
 
