@@ -25,9 +25,24 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Require hosted API URL
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: |
+          if [ -z "$VITE_API_URL" ]; then
+            echo "::error::Missing GitHub secret VITE_API_URL."
+            echo "GitHub Pages is static and cannot run Express/MongoDB."
+            echo "1) Deploy API on Render (repo has render.yaml)."
+            echo "2) Repo → Settings → Secrets → Actions → New secret"
+            echo "   Name: VITE_API_URL"
+            echo "   Value: https://YOUR-SERVICE.onrender.com/api"
+            echo "3) Re-run this workflow."
+            exit 1
+          fi
+          echo "Using hosted API for Pages build."
       - name: Build for GitHub Pages
         env:
-          # Set repo secret VITE_API_URL = https://YOUR-API.onrender.com/api
+          # Repo secret: VITE_API_URL = https://YOUR-API.onrender.com/api
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: npm run build:pages
       - uses: actions/upload-pages-artifact@v3

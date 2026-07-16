@@ -58,13 +58,15 @@ app.use((err, _req, res, _next) => {
 async function start() {
   try {
     await connectDB()
-    app.listen(PORT, () => {
-      console.log(`API running on http://localhost:${PORT}`)
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`API running on port ${PORT}`)
       console.log('Database: Pahadi_link (users, orders, crmleads)')
     })
   } catch (error) {
     console.error('Failed to start server:', error.message)
-    console.error('Tip: Start MongoDB locally, then run npm run server again.')
+    console.error(
+      'Tip: Local → start MongoDB. Production → set MONGODB_URI (Atlas) on the host.'
+    )
     process.exit(1)
   }
 }

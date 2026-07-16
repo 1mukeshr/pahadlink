@@ -1,20 +1,19 @@
-# Deploy PahadLink API on Render: https://render.com
-# 1) Push this repo to GitHub
-# 2) Render → New → Blueprint → select this repo
-# 3) Set env vars below (especially MONGODB_URI from Atlas)
+# One-click: https://render.com/deploy?repo=https://github.com/1mukeshr/uk-ecommerce
+# Or: Render → New → Blueprint → this repo
+# Set MONGODB_URI from Atlas, e.g.
+# mongodb+srv://USER:PASS@cluster.mongodb.net/Pahadi_link?retryWrites=true&w=majority
 services:
   - type: web
     name: pahadlink-api
     runtime: node
     plan: free
+    region: oregon
     buildCommand: npm install
     startCommand: npm run start:api
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
