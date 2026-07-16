@@ -92,27 +92,33 @@ const Home = () => {
         {/* Brand trust */}
         <section className="home-section why-section" id="why">
           <div className="container">
-            <div className="section-head section-head--center">
-              <h2>Why PahadLink</h2>
-              <p>Pure products from real mountain homes - no shortcuts.</p>
+            <div className="why-section__intro">
+              <p className="section-eyebrow">The PahadLink difference</p>
+              <h2>Why PahadLink is unique &amp; better</h2>
+              <p className="why-section__lead">
+                Not a generic marketplace — a direct link between Himalayan homes and your doorstep.
+              </p>
             </div>
             <div className="why-grid">
               {features.map((feature, index) => {
                 const Icon = whyIcons[feature.icon] || CheckCircleIcon
                 return (
-                  <article key={feature.title} className="why-card">
-                    <div className="why-card__top">
-                      <span className="why-card__icon">
-                        <Icon size={22} />
-                      </span>
-                      <span className="why-card__step">0{index + 1}</span>
+                  <article
+                    key={feature.title}
+                    className={`why-card${index === 1 ? ' why-card--featured' : ''}`}
+                  >
+                    <span className="why-card__step" aria-hidden="true">
+                      0{index + 1}
+                    </span>
+                    <div className="why-card__icon">
+                      <Icon size={24} />
                     </div>
                     <h3>{feature.title}</h3>
                     <p>{feature.desc}</p>
-                    <ul>
+                    <ul className="why-card__points">
                       {feature.points.map((point) => (
                         <li key={point}>
-                          <CheckCircleIcon size={14} />
+                          <CheckCircleIcon size={15} />
                           <span>{point}</span>
                         </li>
                       ))}

@@ -9,7 +9,12 @@
 import { HashRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ShopProvider } from './context/ShopContext'
-import { Header, CartDrawer, MobileBottomNav } from './components/layout'
+import {
+  Header,
+  CartDrawer,
+  MobileBottomNav,
+  ScrollToTop,
+} from './components/layout'
 import SupportChat from './components/support/SupportChat'
 import AppRoutes from './routes/AppRoutes'
 
@@ -18,6 +23,7 @@ function App() {
     <AuthProvider>
       <ShopProvider>
         <HashRouter>
+          <ScrollToTop />
           <Header />
           <AppRoutes />
           <CartDrawer />

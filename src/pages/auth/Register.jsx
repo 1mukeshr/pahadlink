@@ -12,7 +12,6 @@ const Register = () => {
   const [form, setForm] = useState({
     name: '',
     email: '',
-    username: '',
     password: '',
     terms: false,
   })
@@ -38,12 +37,16 @@ const Register = () => {
       return
     }
 
+    const email = form.email.trim().toLowerCase()
+    const username =
+      email.split('@')[0].replace(/[^a-z0-9._-]/gi, '').slice(0, 24) || 'user'
+
     setSubmitting(true)
     try {
       await register({
-        name: form.name,
-        email: form.email,
-        username: form.username,
+        name: form.name.trim(),
+        email,
+        username,
         password: form.password,
       })
       navigate(ROUTES.HOME, { replace: true })
@@ -106,24 +109,6 @@ const Register = () => {
               required
             />
             <label htmlFor="email">Email</label>
-          </div>
-        </div>
-
-        <div className="form-field">
-          <div className="input-wrapper">
-            <UserIcon className="input-icon" size={18} />
-            <input
-              type="text"
-              placeholder="Choose a username"
-              id="reg-username"
-              name="username"
-              autoComplete="username"
-              value={form.username}
-              onChange={onChange}
-              minLength={3}
-              required
-            />
-            <label htmlFor="reg-username">Username</label>
           </div>
         </div>
 

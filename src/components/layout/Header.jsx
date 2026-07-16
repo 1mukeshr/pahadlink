@@ -14,9 +14,7 @@ import {
 } from '../icons'
 import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
-import { ROUTES } from '../../config'
-
-const AUTH_PATHS = ['/login', '/register', '/forgot-password', '/reset-password']
+import { ROUTES, AUTH_PATHS, HIDE_CATEGORY_NAV_PATHS } from '../../config'
 
 const Header = () => {
   const { pathname } = useLocation()
@@ -26,8 +24,9 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
-  const showCategoryNav = !AUTH_PATHS.includes(pathname)
   const isAuthPage = AUTH_PATHS.includes(pathname)
+  const showCategoryNav =
+    !isAuthPage && !HIDE_CATEGORY_NAV_PATHS.includes(pathname)
 
   useEffect(() => {
     const onDocClick = (e) => {
@@ -46,7 +45,7 @@ const Header = () => {
   }
 
   return (
-    <header className={`site-header${showCategoryNav ? '' : ' site-header--auth'}`}>
+    <header className={`site-header${isAuthPage ? ' site-header--auth' : ''}`}>
       <div className="header-top">
         <div className="header-container">
           <div className="header-left">

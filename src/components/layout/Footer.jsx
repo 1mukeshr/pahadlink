@@ -75,7 +75,7 @@ const Footer = () => {
           <div className="footer-links">
             <h4>Company</h4>
             <ul>
-              <li><a href="/#why">Why PahadLink</a></li>
+              <li><a href="/#why">Why we&apos;re unique</a></li>
               <li><a href="/#reviews">Customer reviews</a></li>
               <li><Link to={ROUTES.CONTACT}>Partner with us</Link></li>
               <li><Link to={ROUTES.TERMS}>Terms of use</Link></li>

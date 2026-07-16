@@ -23,7 +23,7 @@ const MobileBottomNav = () => {
   const { isAuthenticated } = useAuth()
   const { cartCount, wishlistCount, cartOpen, openCart } = useShop()
 
-  if (hiddenExact.has(pathname) || cartOpen) return null
+  if (hiddenExact.has(pathname)) return null
 
   const accountTo = isAuthenticated ? ROUTES.ACCOUNT : ROUTES.LOGIN
   const accountLabel = isAuthenticated ? 'Account' : 'Login'
@@ -37,7 +37,11 @@ const MobileBottomNav = () => {
     pathname.startsWith('/orders')
 
   return (
-    <nav className="mobile-bottom-nav" aria-label="Quick navigation">
+    <nav
+      className={`mobile-bottom-nav${cartOpen ? ' is-covered' : ''}`}
+      aria-label="Quick navigation"
+      aria-hidden={cartOpen}
+    >
       <NavLink
         to={ROUTES.HOME}
         end

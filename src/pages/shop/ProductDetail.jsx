@@ -519,12 +519,6 @@ const ProductDetail = () => {
                       <ArrowRightIcon size={15} />
                     </button>
                   </div>
-                  <Link
-                    to={categoryPath(product.categoryId)}
-                    className="product-section__see-all"
-                  >
-                    View all
-                  </Link>
                 </div>
               </div>
 
@@ -551,6 +545,16 @@ const ProductDetail = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="product-section__footer">
+                <Link
+                  to={categoryPath(product.categoryId)}
+                  className="product-section__see-all"
+                >
+                  <span>View all</span>
+                  <ArrowRightIcon size={16} />
+                </Link>
               </div>
             </div>
           </section>

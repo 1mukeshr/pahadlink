@@ -145,22 +145,22 @@ export const categoryGroups = [
 
 export const features = [
   {
-    title: 'Pure & Natural',
-    icon: 'leaf',
-    desc: 'No preservatives, no shortcuts - only clean ingredients from the hills.',
-    points: ['No preservatives', 'Farm fresh', 'Honest sourcing'],
-  },
-  {
-    title: 'Made in the Hills',
+    title: 'Direct from the Hills',
     icon: 'mountain',
-    desc: 'Traditional recipes and crafts from Uttarakhand & Himachal communities.',
-    points: ['Local artisans', 'Hill farmers', 'True pahadi taste'],
+    desc: 'We work with pahadi farmers and artisans — not middlemen — so you get real mountain products at fair prices.',
+    points: ['Village-sourced goods', 'Fair pay for makers', 'Authentic hill recipes'],
   },
   {
-    title: 'Quality You Trust',
+    title: 'Pure, Not Processed',
+    icon: 'leaf',
+    desc: 'No bulk blending, no artificial fillers. What you order is what grows and is made in the mountains.',
+    points: ['No preservatives', 'Farm-fresh batches', 'Clean ingredient labels'],
+  },
+  {
+    title: 'Trusted Every Order',
     icon: 'shield',
-    desc: 'Carefully packed and checked so every order reaches you fresh and safe.',
-    points: ['Hygienic packing', 'Consistent quality', 'Safe delivery'],
+    desc: 'Checked, packed with care, and delivered safely — so quality stays the same from first order to repeat.',
+    points: ['Quality checks', 'Secure packaging', 'Reliable delivery'],
   },
 ]
 

@@ -17,15 +17,22 @@ router.post('/register', async (req, res) => {
   try {
     const name = String(req.body.name || '').trim()
     const email = String(req.body.email || '').trim().toLowerCase()
-    const username = String(req.body.username || '').trim().toLowerCase()
+    let username = String(req.body.username || '').trim().toLowerCase()
     const password = String(req.body.password || '')
 
+    if (!username && email.includes('@')) {
+      username = email
+        .split('@')[0]
+        .replace(/[^a-z0-9._-]/g, '')
+        .slice(0, 24)
+    }
+
     if (!name || !email || !username || !password) {
-      return res.status(400).json({ message: 'Name, email, username and password are required' })
+      return res.status(400).json({ message: 'Name, email and password are required' })
     }
 
     if (username.length < 3) {
-      return res.status(400).json({ message: 'Username must be at least 3 characters' })
+      username = `${username}${Math.floor(100 + Math.random() * 900)}`
     }
 
     if (password.length < 6) {

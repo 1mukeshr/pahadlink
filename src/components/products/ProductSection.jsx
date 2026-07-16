@@ -6,7 +6,7 @@ import { ROUTES } from '../../config'
 import { getProductsByTag, productTabs } from '../../data/siteData'
 
 /**
- * Home product shelf - 5 cards per row, View all link
+ * Home product shelf - 5 cards per row, View all after products
  */
 const ProductSection = ({
   id,
@@ -34,10 +34,6 @@ const ProductSection = ({
             <h2>{title}</h2>
             {subtitle && <p className="product-section__sub">{subtitle}</p>}
           </div>
-          <SeeAllTag {...seeAllProps} className="product-section__see-all">
-            <span>{seeAllLabel}</span>
-            <ArrowRightIcon size={15} />
-          </SeeAllTag>
         </div>
 
         {tabs && (
@@ -61,6 +57,13 @@ const ProductSection = ({
           {list.map((product) => (
             <ProductCard key={`${activeTab}-${product.id}`} product={product} />
           ))}
+        </div>
+
+        <div className="product-section__footer">
+          <SeeAllTag {...seeAllProps} className="product-section__see-all">
+            <span>{seeAllLabel}</span>
+            <ArrowRightIcon size={16} />
+          </SeeAllTag>
         </div>
       </div>
     </section>

@@ -40,13 +40,9 @@ export function ShopProvider({ children }) {
 
     const body = document.body
     const prevOverflow = body.style.overflow
-    const prevPadding = body.style.paddingRight
-    const scrollbarGap = window.innerWidth - document.documentElement.clientWidth
 
+    // Keep page width stable — html already uses scrollbar-gutter: stable
     body.style.overflow = 'hidden'
-    if (scrollbarGap > 0) {
-      body.style.paddingRight = `${scrollbarGap}px`
-    }
 
     const onKey = (e) => {
       if (e.key === 'Escape') setCartOpen(false)
@@ -55,7 +51,6 @@ export function ShopProvider({ children }) {
 
     return () => {
       body.style.overflow = prevOverflow
-      body.style.paddingRight = prevPadding
       document.removeEventListener('keydown', onKey)
     }
   }, [cartOpen])

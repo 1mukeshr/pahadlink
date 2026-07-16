@@ -103,6 +103,25 @@
 
     .why-grid {
       grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .why-section {
+      padding: 52px 0;
+    }
+
+    .why-section__intro {
+      margin-bottom: 28px;
+    }
+
+    .why-card {
+      padding: 22px 20px 20px;
+    }
+
+    .why-card__step {
+      font-size: 2rem;
+      top: 12px;
+      right: 14px;
     }
 
     .product-detail__grid {
@@ -258,8 +277,9 @@
     .pincode-box {
       flex: 1 1 auto;
       min-width: 0;
-      max-width: min(38vw, 148px);
+      max-width: min(50vw, 160px);
       overflow: visible;
+      margin-left: 10px;
     }
 
     .pincode-trigger {
@@ -655,7 +675,8 @@
     }
 
     .pincode-box {
-      max-width: min(34vw, 120px);
+      max-width: min(50vw, 160px);
+      margin-left: 10px;
     }
 
     .logo-text {
@@ -731,6 +752,13 @@
     -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid #f0e4ea;
     box-shadow: 0 -8px 24px rgba(80, 10, 40, 0.08);
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+  }
+
+  .mobile-bottom-nav.is-covered {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .mobile-bottom-nav__item {
@@ -748,7 +776,6 @@
     text-decoration: none;
     font: inherit;
     font-size: 0.62rem;
-    font-weight: 700;
     letter-spacing: 0.01em;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -940,8 +967,9 @@
   .pincode-box {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: min(36vw, 132px);
+    max-width: min(50vw, 160px);
     overflow: visible;
+    margin-left: 10px;
   }
 
   .pincode-box.is-open {
@@ -973,7 +1001,7 @@
   }
 
   .pincode-label {
-    display: none;
+    display: block;
   }
 
   .pincode-value {
@@ -1038,8 +1066,9 @@
     top: auto;
     bottom: 0;
     width: 100%;
+    height: 100%;
     max-width: none;
-    max-height: min(85vh, 580px);
+    max-height: 100%;
     border-radius: 20px 20px 0 0;
     border: none;
     border-top: 1px solid #f0e4ea;
@@ -1434,15 +1463,16 @@
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .page-loader__spinner {
-    animation: none;
-    border-top-color: #f0e4ea;
-    border-color: var(--primary);
-  }
-
+  .page-transition,
+  .page-loader__spinner,
   .category-hero__inner,
-  .category-product-grid {
-    animation: none;
+  .category-product-grid,
+  .shop-catalog__main,
+  .auth-card,
+  .legal-panel,
+  .contact-brand__inner,
+  .contact-panel {
+    animation: none !important;
   }
 
   .category-chip,
@@ -1456,5 +1486,10 @@
   .product-detail__main-media.is-zooming img,
   .product-detail__zoom-hint {
     transition: none;
+  }
+
+  .bag-drawer__panel,
+  .bag-drawer__backdrop {
+    transition-duration: 0.01ms !important;
   }
 }
