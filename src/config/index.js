@@ -3,10 +3,11 @@
  */
 export const APP_NAME = 'PahadLink'
 
-/** Local: `/api` (Vite proxy). Production: set `VITE_API_URL` to your hosted API. */
-export const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || '/api'
-).replace(/\/$/, '')
+export {
+  API_BASE_URL,
+  getApiBaseUrl,
+  loadRuntimeConfig,
+} from './api'
 
 export const STORAGE = {
   TOKEN: 'pahadlink_token',

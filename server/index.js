@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
 import { connectDB } from './config/db.js'
+import { fileUserStore } from './store/fileUserStore.js'
 import authRoutes from './routes/auth.js'
 import orderRoutes from './routes/orders.js'
 import crmRoutes from './routes/crm.js'
@@ -41,11 +42,12 @@ app.use(express.json({ limit: '1mb' }))
 
 function healthPayload() {
   const dbState = mongoose.connection.readyState
+  const usingFile = fileUserStore.enabled
   return {
-    ok: dbState === 1,
+    ok: dbState === 1 || usingFile,
     service: 'pahadlink-api',
-    database: 'Pahadi_link',
-    mongo: dbState === 1 ? 'connected' : 'disconnected',
+    database: usingFile ? 'file-store' : 'Pahadi_link',
+    mongo: dbState === 1 ? 'connected' : usingFile ? 'file-fallback' : 'disconnected',
     time: new Date().toISOString(),
   }
 }

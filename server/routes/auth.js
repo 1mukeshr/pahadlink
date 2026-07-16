@@ -1,7 +1,10 @@
 import { Router } from 'express'
 import crypto from 'crypto'
-import User, { ROLES } from '../models/User.js'
+import bcrypt from 'bcryptjs'
+import { ROLES } from '../models/User.js'
+import { users } from '../services/users.js'
 import { protect, authorize, signToken } from '../middleware/auth.js'
+import { isFileDbMode } from '../config/db.js'
 
 const router = Router()
 
@@ -39,15 +42,14 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 6 characters' })
     }
 
-    const emailTaken = await User.findOne({ email })
+    const emailTaken = await users.findOne({ email })
     if (emailTaken) {
       return res.status(409).json({ message: 'Email already registered' })
     }
 
-    // Keep auto-usernames unique when email local-parts collide
     let uniqueUsername = username.slice(0, 30)
     let attempt = 0
-    while (await User.findOne({ username: uniqueUsername })) {
+    while (await users.findOne({ username: uniqueUsername })) {
       attempt += 1
       const suffix = String(Math.floor(100 + Math.random() * 900))
       uniqueUsername = `${username.slice(0, 26)}${suffix}`
@@ -56,7 +58,7 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    const user = await User.create({
+    const user = await users.create({
       name,
       email,
       username: uniqueUsername,
@@ -83,9 +85,10 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Username and password are required' })
     }
 
-    const user = await User.findOne({
-      $or: [{ username }, { email: username }],
-    }).select('+password')
+    const user = await users.findOne(
+      { $or: [{ username }, { email: username }] },
+      { select: '+password' }
+    )
 
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid username or password' })
@@ -109,9 +112,7 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(400).json({ message: 'Email is required' })
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() })
-
-    // Always same message (don't leak whether email exists)
+    const user = await users.findOne({ email: email.toLowerCase().trim() })
     const okMessage = {
       message: 'If an account exists with that email, reset instructions have been sent.',
     }
@@ -125,7 +126,6 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000)
     await user.save({ validateBeforeSave: false })
 
-    // Email service not configured yet — return token in dev for testing
     const payload = { ...okMessage }
     if (process.env.NODE_ENV !== 'production') {
       payload.devResetToken = resetToken
@@ -150,16 +150,23 @@ router.post('/reset-password', async (req, res) => {
     }
 
     const hashed = crypto.createHash('sha256').update(token).digest('hex')
-    const user = await User.findOne({
-      resetPasswordToken: hashed,
-      resetPasswordExpires: { $gt: new Date() },
-    }).select('+resetPasswordToken +resetPasswordExpires')
+    const user = await users.findOne(
+      {
+        resetPasswordToken: hashed,
+        resetPasswordExpires: { $gt: new Date() },
+      },
+      { select: '+resetPasswordToken +resetPasswordExpires' }
+    )
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired reset token' })
     }
 
-    user.password = password
+    if (isFileDbMode()) {
+      user.password = await bcrypt.hash(password, 10)
+    } else {
+      user.password = password
+    }
     user.resetPasswordToken = undefined
     user.resetPasswordExpires = undefined
     await user.save()
@@ -180,7 +187,6 @@ router.post('/google', async (req, res) => {
     })
   }
 
-  // Placeholder for Google token verification
   return res.status(501).json({
     message: 'Google token verification pending. Credential received.',
     status: 'coming_soon',
@@ -188,7 +194,6 @@ router.post('/google', async (req, res) => {
   })
 })
 
-/** POST /api/auth/otp/send — Future OTP Login */
 router.post('/otp/send', (_req, res) => {
   return res.status(501).json({
     message: 'OTP Login is planned for a future release',
@@ -196,7 +201,6 @@ router.post('/otp/send', (_req, res) => {
   })
 })
 
-/** POST /api/auth/otp/verify — Future OTP Login */
 router.post('/otp/verify', (_req, res) => {
   return res.status(501).json({
     message: 'OTP Login is planned for a future release',
@@ -204,12 +208,10 @@ router.post('/otp/verify', (_req, res) => {
   })
 })
 
-/** GET /api/auth/me */
 router.get('/me', protect, (req, res) => {
   res.json({ user: req.user.toSafeJSON() })
 })
 
-/** PATCH /api/auth/users/:id/role — Admin role management */
 router.patch('/users/:id/role', protect, authorize('admin'), async (req, res) => {
   try {
     const { role } = req.body
@@ -219,12 +221,7 @@ router.patch('/users/:id/role', protect, authorize('admin'), async (req, res) =>
       })
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { role },
-      { new: true }
-    )
-
+    const user = await users.findByIdAndUpdate(req.params.id, { role })
     if (!user) {
       return res.status(404).json({ message: 'User not found' })
     }
@@ -238,10 +235,9 @@ router.patch('/users/:id/role', protect, authorize('admin'), async (req, res) =>
   }
 })
 
-/** GET /api/auth/users — Admin: list users */
 router.get('/users', protect, authorize('admin'), async (_req, res) => {
-  const users = await User.find().sort({ createdAt: -1 })
-  res.json({ users: users.map((u) => u.toSafeJSON()) })
+  const list = await users.findAllSorted()
+  res.json({ users: list.map((u) => u.toSafeJSON()) })
 })
 
 export default router

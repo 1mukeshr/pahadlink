@@ -2,6 +2,7 @@ import { Component, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './assets/css/style.css'
 import './assets/css/responsive.css'
+import { loadRuntimeConfig } from './config'
 import App from './App.jsx'
 
 class RootErrorBoundary extends Component {
@@ -67,17 +68,19 @@ if (rootEl) {
   const boot = document.getElementById('boot-loader')
   if (boot) boot.dataset.started = String(Date.now())
 
-  createRoot(rootEl).render(
-    <StrictMode>
-      <RootErrorBoundary>
-        <App />
-      </RootErrorBoundary>
-    </StrictMode>
-  )
+  loadRuntimeConfig().finally(() => {
+    createRoot(rootEl).render(
+      <StrictMode>
+        <RootErrorBoundary>
+          <App />
+        </RootErrorBoundary>
+      </StrictMode>
+    )
 
-  // Let the first paint settle, then fade splash out smoothly
-  requestAnimationFrame(() => {
-    requestAnimationFrame(hideBootLoader)
+    // Let the first paint settle, then fade splash out smoothly
+    requestAnimationFrame(() => {
+      requestAnimationFrame(hideBootLoader)
+    })
   })
 } else {
   document.body.innerHTML =

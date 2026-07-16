@@ -20,8 +20,13 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Optional Atlas URI. If omitted / unreachable, API uses file DB fallback.
       - key: MONGODB_URI
         sync: false
+      - key: USE_FILE_DB
+        value: "true"
+      - key: ALLOW_FILE_DB_FALLBACK
+        value: "true"
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN

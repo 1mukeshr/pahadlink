@@ -1,11 +1,13 @@
 import jwt from 'jsonwebtoken'
-import User, { ROLES } from '../models/User.js'
+import { ROLES } from '../models/User.js'
+import { users } from '../services/users.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'pahadlink-dev-secret-change-me'
 
 export function signToken(user) {
+  const id = user._id?.toString?.() || user.id
   return jwt.sign(
-    { id: user._id.toString(), role: user.role },
+    { id, role: user.role },
     JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   )
@@ -21,7 +23,7 @@ export async function protect(req, res, next) {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET)
-    const user = await User.findById(decoded.id)
+    const user = await users.findById(decoded.id)
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid or inactive account' })

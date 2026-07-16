@@ -27,27 +27,30 @@ GitHub Pages is **static** — it cannot run Express or MongoDB. You need a host
 3. Connection string, DB name **`Pahadi_link`**:
    `mongodb+srv://USER:PASS@CLUSTER.mongodb.net/Pahadi_link?retryWrites=true&w=majority`
 
-### 2) Deploy API on Render
+### 2) Deploy API on Render (no Atlas required)
 
 1. Open [render.com/deploy?repo=https://github.com/1mukeshr/pahadlink](https://render.com/deploy?repo=https://github.com/1mukeshr/pahadlink)  
    or Render → **New** → **Blueprint** → this repo (`render.yaml`)
-2. Set:
-   - `MONGODB_URI` = Atlas URI above
-   - `ADMIN_PASSWORD` = strong password
+2. Set `ADMIN_PASSWORD` (and optionally `MONGODB_URI` for Atlas).  
+   Default blueprint uses **file DB fallback** so auth works without MongoDB Atlas.
 3. Deploy, then open: `https://YOUR-SERVICE.onrender.com/api/health`  
-   Expect: `{ "ok": true, "database": "Pahadi_link", ... }`
+   Expect: `{ "ok": true, ... }`
 
 ### 3) Point the GitHub Pages frontend at the API
 
 1. Repo → **Settings → Secrets and variables → Actions**
-2. New secret:
-   - Name: `VITE_API_URL`
-   - Value: `https://YOUR-SERVICE.onrender.com/api`  (must end with `/api`)
-3. Push to `main` (or re-run **Deploy GitHub Pages** workflow)
+2. Secret `VITE_API_URL` = `https://YOUR-SERVICE.onrender.com/api`
+3. Optionally set `public/runtime-config.json` → `{ "apiUrl": "https://YOUR-SERVICE.onrender.com/api" }`
+4. Push to `main` (or re-run **Deploy GitHub Pages**)
 
 Live site: https://1mukeshr.github.io/pahadlink/
 
-> Free Render services sleep after idle. First login after sleep can take ~30–50 seconds.
+Auth smoke test:
+
+```bash
+npm run test:auth
+npm run test:auth -- https://YOUR-SERVICE.onrender.com/api
+```
 
 ## Folder structure
 
