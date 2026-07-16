@@ -12,6 +12,7 @@ import {
 } from '../components/icons'
 import { submitContact } from '../services/contactService'
 import { ROUTES } from '../config'
+import logo from '../assets/images/logo.png'
 
 const PHONE_DISPLAY = '+91 96904 21423'
 const PHONE_TEL = '+919690421423'
@@ -81,7 +82,7 @@ const Contact = () => {
             <div className="contact-brand__veil" aria-hidden="true" />
             <div className="contact-brand__inner">
               <p className="contact-brand__name">
-                Pahad<span>Link</span>
+                <img src={logo} alt="PahadLink" className="contact-brand__logo" />
               </p>
               <h1>Talk to us from the hills</h1>
               <p className="contact-brand__lead">

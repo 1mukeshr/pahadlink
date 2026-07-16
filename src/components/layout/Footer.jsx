@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
 import {
-  MountainIcon,
   MapPinIcon,
   PhoneIcon,
   MailIcon,
 } from '../icons'
 import { ROUTES, categoryPath } from '../../config'
 import { categoryGroups } from '../../data/siteData'
+import logo from '../../assets/images/logo.png'
 
 const Footer = () => {
   const year = new Date().getFullYear()
@@ -18,12 +18,7 @@ const Footer = () => {
         <div className="footer-grid">
           <div className="footer-brand">
             <Link to={ROUTES.HOME} className="footer-logo" aria-label="PahadLink home">
-              <span className="footer-logo-mark" aria-hidden="true">
-                <MountainIcon size={18} />
-              </span>
-              <span className="footer-logo-text">
-                Pahad<span>Link</span>
-              </span>
+              <img src={logo} alt="PahadLink" className="footer-logo__img" />
             </Link>
             <p>
               Pure Himalayan foods, crafts, and everyday essentials - sourced from

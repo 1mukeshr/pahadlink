@@ -299,10 +299,8 @@
       white-space: nowrap;
     }
 
-    .header-logo-mark {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+    .header-logo__img {
+      height: 40px;
     }
 
     .section-head--row {
@@ -1027,8 +1025,8 @@
     flex-shrink: 0;
   }
 
-  .logo-text {
-    font-size: 1.1rem;
+  .header-logo__img {
+    height: 40px;
   }
 
   .pincode-overlay {
@@ -1185,13 +1183,8 @@
     margin-bottom: 12px;
   }
 
-  .footer-logo-mark {
-    width: 34px;
-    height: 34px;
-  }
-
-  .footer-logo-text {
-    font-size: 1.25rem;
+  .footer-logo__img {
+    height: 40px;
   }
 
   .footer-brand > p {

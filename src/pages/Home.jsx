@@ -50,14 +50,14 @@ const Home = () => {
               </div>
             </div>
             <div className="benefit-item">
-              <div className="benefit-icon"><CheckCircleIcon size={20} /></div>
+              <div className="benefit-icon benefit-icon--secondary"><CheckCircleIcon size={20} /></div>
               <div>
                 <h4>100% natural</h4>
                 <p>No artificial additives</p>
               </div>
             </div>
             <div className="benefit-item">
-              <div className="benefit-icon"><MountainIcon size={20} /></div>
+              <div className="benefit-icon benefit-icon--secondary"><MountainIcon size={20} /></div>
               <div>
                 <h4>From the hills</h4>
                 <p>Direct from local makers</p>

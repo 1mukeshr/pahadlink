@@ -4,7 +4,6 @@ import CategoryNav from './CategoryNav'
 import PincodeBox from './PincodeBox'
 import HeaderSearch from './HeaderSearch'
 import {
-  MountainIcon,
   UserIcon,
   ChevronDownIcon,
   HeartIcon,
@@ -15,6 +14,7 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
 import { ROUTES, AUTH_PATHS, HIDE_CATEGORY_NAV_PATHS } from '../../config'
+import logo from '../../assets/images/logo.png'
 
 const Header = () => {
   const { pathname } = useLocation()
@@ -50,15 +50,7 @@ const Header = () => {
         <div className="header-container">
           <div className="header-left">
             <Link to="/" className="header-logo" aria-label="PahadLink home">
-              <span className="header-logo-mark" aria-hidden="true">
-                <MountainIcon size={20} />
-              </span>
-              <span className="logo-brand">
-                <span className="logo-text">
-                  Pahad<span className="logo-accent">Link</span>
-                </span>
-                <span className="logo-tagline">Pure from the hills</span>
-              </span>
+              <img src={logo} alt="PahadLink" className="header-logo__img" />
             </Link>
 
             <span className="header-left-divider" aria-hidden="true" />
