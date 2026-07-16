@@ -1251,8 +1251,8 @@
   }
 
   .footer-legal a:hover {
-    border-color: #f4a9c5;
-    background: #fff5f9;
+    border-color: var(--border-light);
+    background: #ffffff;
     color: var(--primary);
   }
 
