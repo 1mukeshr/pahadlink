@@ -25,19 +25,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Require hosted API URL
+      - name: Resolve API URL for Pages build
+        id: api
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
           if [ -z "$VITE_API_URL" ]; then
-            echo "::error::Missing GitHub secret VITE_API_URL."
-            echo "GitHub Pages is static and cannot run Express/MongoDB."
-            echo "1) Deploy API on Render (repo has render.yaml)."
-            echo "2) Repo → Settings → Secrets → Actions → New secret"
-            echo "   Name: VITE_API_URL"
-            echo "   Value: https://YOUR-SERVICE.onrender.com/api"
-            echo "3) Re-run this workflow."
-            exit 1
+            echo "::warning::Secret VITE_API_URL is not set. Storefront will deploy, but login/register need a hosted API."
+            echo "Add secret VITE_API_URL = https://YOUR-SERVICE.onrender.com/api then redeploy."
+            echo "has_api=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           case "$VITE_API_URL" in
             http://*|https://*) ;;
@@ -47,7 +44,9 @@ jobs:
               ;;
           esac
           echo "Using hosted API: $VITE_API_URL"
+          echo "has_api=true" >> "$GITHUB_OUTPUT"
       - name: Check API health
+        if: steps.api.outputs.has_api == 'true'
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         continue-on-error: true
@@ -57,7 +56,7 @@ jobs:
           curl -fsS --max-time 60 "$HEALTH_URL" || echo "::warning::API health check failed (service may be sleeping). Pages build continues."
       - name: Build for GitHub Pages
         env:
-          # Repo secret: VITE_API_URL = https://YOUR-API.onrender.com/api
+          # Optional until Render API is live: VITE_API_URL = https://YOUR-API.onrender.com/api
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: npm run build:pages
       - uses: actions/upload-pages-artifact@v3
