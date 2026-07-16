@@ -1,1 +1,0 @@
-import{C as e,a as t,b as n,g as r}from"./jsx-dev-runtime-hCJJjgm-.js";import{A as i}from"./index-BsQWNQ4r.js";var a=e(n(),1),o=()=>{let e=r(),{openCart:n}=i();return(0,a.useEffect)(()=>{n(),e(t.SHOP,{replace:!0})},[e,n]),null};export{o as default};
