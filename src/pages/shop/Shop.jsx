@@ -16,6 +16,7 @@ import {
   productMatchesPrice,
   productTabs,
   products,
+  scoreProductMatch,
 } from '../../data/siteData'
 
 const SORT_OPTIONS = [
@@ -390,8 +391,12 @@ const Shop = () => {
     let result = [...products]
 
     if (filters.q) {
-      const q = filters.q.toLowerCase()
-      result = result.filter((p) => p.name.toLowerCase().includes(q))
+      const q = filters.q
+      result = result
+        .map((p) => ({ p, score: scoreProductMatch(p, q) }))
+        .filter((row) => row.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((row) => row.p)
     }
 
     if (filters.categories.length) {

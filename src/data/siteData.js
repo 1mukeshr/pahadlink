@@ -516,6 +516,70 @@ export const productMatchesPrice = (product, min, max, sizeFilter = []) => {
 export const getCategoryById = (id) =>
   categoryGroups.find((group) => group.id === id) || null
 
+/** Score how well a product matches a search query (0 = no match). */
+export const scoreProductMatch = (product, query) => {
+  const q = String(query || '').trim().toLowerCase()
+  if (!q) return 0
+
+  const name = String(product.name || '').toLowerCase()
+  const sub = String(product.subcategory || '').toLowerCase()
+  const category = getCategoryById(product.categoryId)?.name?.toLowerCase() || ''
+  const tags = (product.tags || []).join(' ').toLowerCase()
+  const haystack = `${name} ${sub} ${category} ${tags}`
+
+  if (name === q || sub === q) return 100
+  if (name.startsWith(q) || sub.startsWith(q)) return 90
+  if (name.includes(q)) return 75
+  if (sub.includes(q)) return 65
+  if (category.includes(q)) return 55
+  if (tags.includes(q)) return 45
+  // multi-word: all tokens must appear somewhere
+  const tokens = q.split(/\s+/).filter(Boolean)
+  if (tokens.length > 1 && tokens.every((t) => haystack.includes(t))) return 40
+  return 0
+}
+
+export const searchProducts = (query, { limit = 8 } = {}) => {
+  const q = String(query || '').trim()
+  if (!q) return []
+
+  return products
+    .map((product) => ({ product, score: scoreProductMatch(product, q) }))
+    .filter((row) => row.score > 0)
+    .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name))
+    .slice(0, limit)
+    .map((row) => row.product)
+}
+
+export const searchCategories = (query, { limit = 4 } = {}) => {
+  const q = String(query || '').trim().toLowerCase()
+  if (!q) return []
+
+  return categoryGroups
+    .filter((group) => {
+      const name = group.name.toLowerCase()
+      const types = (group.types || []).map((t) => t.name.toLowerCase())
+      return name.includes(q) || types.some((t) => t.includes(q))
+    })
+    .slice(0, limit)
+}
+
+/** Popular picks shown when search is focused with an empty query. */
+export const getSearchSuggestions = ({ limit = 6 } = {}) => {
+  const popular = products.filter((p) => p.tags?.includes('bestseller'))
+  const trending = products.filter((p) => p.tags?.includes('trending'))
+  const merged = []
+  const seen = new Set()
+
+  ;[...popular, ...trending, ...products].forEach((p) => {
+    if (seen.has(p.id) || merged.length >= limit) return
+    seen.add(p.id)
+    merged.push(p)
+  })
+
+  return merged
+}
+
 export const getProductsByCategory = (categoryId, { subcategory } = {}) => {
   if (!categoryId) return []
 
