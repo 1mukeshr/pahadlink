@@ -425,7 +425,6 @@
     }
 
     .mf-hero__small-wrap {
-      aspect-ratio: 1 / 1.05;
       flex: unset;
       border-radius: 12px;
     }
