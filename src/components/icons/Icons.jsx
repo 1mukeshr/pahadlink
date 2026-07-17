@@ -29,9 +29,17 @@ export const HomeIcon = (props) => (
 
 export const MountainIcon = (props) => (
   <Icon {...props}>
-    <path d="M3 20h18" />
-    <path d="M7 20l5-14 5 14" />
-    <path d="M9.5 14h5" />
+    <path d="m3 20 6.5-12 2.5 4.5L15 7l6 13H3z" />
+    <path d="M8.2 20 12 12.5 14.8 20" />
+  </Icon>
+)
+
+/** Hills / local-origin mark - multi-peak range for “From the hills” */
+export const HillsIcon = (props) => (
+  <Icon {...props}>
+    <path d="M2 20h20" />
+    <path d="m4 20 4.2-9 2.3 4.2L13.5 8l6.5 12" />
+    <path d="m9.2 20 2.6-5.2 2.4 5.2" />
   </Icon>
 )
 
@@ -164,11 +172,10 @@ export const SpiceIcon = (props) => (
 
 export const HoneyIcon = (props) => (
   <Icon {...props}>
-    <path d="M8 3.5h8l2 4H6l2-4z" />
-    <path d="M6 7.5h12v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-11z" />
-    <path d="M9.5 12h5" />
-    <path d="M9.5 15.5h5" />
-    <path d="M12 12v3.5" />
+    <path d="M8.5 3.5h7l1.8 3.8H6.7L8.5 3.5z" />
+    <path d="M6.7 7.3h10.6v10.2a2 2 0 0 1-2 2H8.7a2 2 0 0 1-2-2V7.3z" />
+    <path d="M9.6 12.2h4.8" />
+    <path d="M9.6 15.2h4.8" />
   </Icon>
 )
 
@@ -233,34 +240,32 @@ export const BasketIcon = (props) => (
 
 export const OrganicFoodIcon = (props) => (
   <Icon {...props}>
-    <path d="M12 21c-4.5 0-7-2.8-7-6.5C5 9 9 5.5 12 3c3 2.5 7 6 7 11.5 0 3.7-2.5 6.5-7 6.5z" />
-    <path d="M12 21V10" />
-    <path d="M12 14c2-.8 3.5-2.4 4.2-4.2" />
+    <path d="M12 21c-4.2 0-7-2.7-7-6.2C5 9.2 9.2 5.4 12 3c2.8 2.4 7 6.2 7 11.8 0 3.5-2.8 6.2-7 6.2z" />
+    <path d="M12 21V10.5" />
+    <path d="M12 13.5c1.8-.7 3.2-2.2 4-4" />
   </Icon>
 )
 
 export const SpiritualIcon = (props) => (
   <Icon {...props}>
-    <path d="M8 20h8" />
-    <path d="M9 20c0-2.2 1.4-3.6 3-4.8 1.6 1.2 3 2.6 3 4.8" />
-    <path d="M12 15c-1.2-2-1.8-3.8-1.8-5.5A1.8 1.8 0 0 1 12 8a1.8 1.8 0 0 1 1.8 1.5c0 1.7-.6 3.5-1.8 5.5z" />
-    <path d="M12 4v2.2" />
+    <path d="M12 2.8c1.7 2.6 2.6 4.7 2.6 6.7a2.6 2.6 0 1 1-5.2 0c0-2 0.9-4.1 2.6-6.7z" />
+    <path d="M8.2 21h7.6" />
+    <path d="M9.2 21c0-2.1 1.3-3.5 2.8-4.7 1.5 1.2 2.8 2.6 2.8 4.7" />
+    <path d="M7.5 16.2c1.2-.8 2.7-1.2 4.5-1.2s3.3.4 4.5 1.2" />
   </Icon>
 )
 
 export const ClothingIcon = (props) => (
   <Icon {...props}>
-    <path d="M9 4h6l1.8 2.2L19 8l-2.2 2.2L15.5 9v11h-7V9L7.2 10.2 5 8l2.2-1.8L9 4z" />
-    <path d="M10 14h4" />
+    <path d="M9.2 4h5.6l2 2.4L20 8.2l-2.4 2.2L15.8 9v11H8.2V9L6.4 10.4 4 8.2l3.2-1.8L9.2 4z" />
   </Icon>
 )
 
 export const HandicraftIcon = (props) => (
   <Icon {...props}>
-    <path d="M8 8h8l2 4H6l2-4z" />
-    <path d="M7 12h10v7a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 7 19v-7z" />
-    <path d="M10 4h4v4h-4z" />
-    <path d="M10 16h4" />
+    <path d="M5.5 10.5h13l-1.4 8.2a1.6 1.6 0 0 1-1.6 1.3H8.5a1.6 1.6 0 0 1-1.6-1.3L5.5 10.5z" />
+    <path d="M9.5 10.5V7.2a2.5 2.5 0 0 1 5 0v3.3" />
+    <path d="M9.8 14.5h4.4" />
   </Icon>
 )
 
@@ -273,11 +278,12 @@ export const WellnessIcon = (props) => (
 
 export const SweetsIcon = (props) => (
   <Icon {...props}>
-    <ellipse cx="12" cy="13.5" rx="7.5" ry="5.5" />
-    <path d="M5.5 12.5c1.2-3.5 3.4-5.5 6.5-5.5s5.3 2 6.5 5.5" />
-    <circle cx="9.5" cy="13" r="1" />
-    <circle cx="12" cy="14.5" r="1" />
-    <circle cx="14.5" cy="13" r="1" />
+    <circle cx="12" cy="13" r="7" />
+    <circle cx="12" cy="13" r="3.2" />
+    <path d="M12 6.2v2.2" />
+    <path d="M12 17.6v2.2" />
+    <path d="M6.2 13h2.2" />
+    <path d="M15.6 13h2.2" />
   </Icon>
 )
 
@@ -286,7 +292,7 @@ export const GiftIcon = (props) => (
     <rect x="4" y="10" width="16" height="11" rx="1.5" />
     <path d="M4 14h16" />
     <path d="M12 10v11" />
-    <path d="M12 10c-2 0-3.2-1.3-3.2-2.7S10.2 4.8 12 6.8c1.8-2 3.2-.9 3.2.5S14 10 12 10z" />
+    <path d="M12 10c-2.1 0-3.4-1.4-3.4-2.8S10.1 4.6 12 6.8c1.9-2.2 3.4-1 3.4.4S14.1 10 12 10z" />
   </Icon>
 )
 
@@ -437,21 +443,36 @@ export const SnackIcon = (props) => (
 )
 
 export const ChevronDownIcon = (props) => (
-  <Icon strokeWidth={2} {...props}>
-    <path d="m7 10 5 5 5-5" />
+  <Icon strokeWidth={2.35} {...props}>
+    <path d="m6 9 6 6 6-6" />
   </Icon>
 )
 
 export const ChevronRightIcon = (props) => (
-  <Icon strokeWidth={2} {...props}>
-    <path d="m10 7 5 5-5 5" />
+  <Icon strokeWidth={2.35} {...props}>
+    <path d="m9 6 6 6-6 6" />
   </Icon>
 )
 
 export const ChevronLeftIcon = (props) => (
-  <Icon strokeWidth={2} {...props}>
-    <path d="m14 7-5 5 5 5" />
+  <Icon strokeWidth={2.35} {...props}>
+    <path d="m15 6-6 6 6 6" />
   </Icon>
+)
+
+/** Solid dropdown caret - clearer at header / pincode sizes */
+export const DropdownIcon = ({ className = '', size = 14, ...props }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    aria-hidden="true"
+    fill="currentColor"
+    {...props}
+  >
+    <path d="M7.2 9.25a1.15 1.15 0 0 1 1.63 0L12 12.42l3.17-3.17a1.15 1.15 0 1 1 1.63 1.63l-3.98 3.98a1.15 1.15 0 0 1-1.63 0L7.2 10.88a1.15 1.15 0 0 1 0-1.63z" />
+  </svg>
 )
 
 export const ArrowRightIcon = (props) => (
@@ -462,9 +483,9 @@ export const ArrowRightIcon = (props) => (
 )
 
 export const ArrowLeftIcon = (props) => (
-  <Icon strokeWidth={2} {...props}>
+  <Icon strokeWidth={2.1} {...props}>
     <path d="M19 12H5" />
-    <path d="m11 6-6 6 6 6" />
+    <path d="m11 5-7 7 7 7" />
   </Icon>
 )
 
@@ -536,6 +557,47 @@ export const WhatsAppIcon = ({ size = 18, className = '' }) => (
     fill="currentColor"
   >
     <path d="M20.5 3.5A11.8 11.8 0 0 0 12.05 0C5.5 0 .2 5.3.2 11.85c0 2.1.55 4.1 1.6 5.9L0 24l6.4-1.7a11.8 11.8 0 0 0 5.65 1.45h.05c6.55 0 11.85-5.3 11.85-11.85 0-3.17-1.23-6.15-3.45-8.4zm-8.45 18.2h-.04a9.8 9.8 0 0 1-5-1.37l-.36-.21-3.8 1 1.02-3.7-.24-.38a9.8 9.8 0 0 1-1.5-5.22c0-5.42 4.42-9.83 9.85-9.83 2.63 0 5.1 1.02 6.96 2.88a9.76 9.76 0 0 1 2.88 6.95c0 5.42-4.42 9.88-9.77 9.88zm5.38-7.37c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.64-2.04-.17-.3-.02-.46.13-.6.13-.13.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.6-.92-2.2-.24-.57-.48-.5-.67-.5h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.48.71.3 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.75-.72 2-1.4.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35z" />
+  </svg>
+)
+
+export const InstagramIcon = ({ size = 18, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    aria-hidden="true"
+    fill="currentColor"
+  >
+    <path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.9.2 2.4.5.6.2 1 .5 1.5 1 .4.4.7.9 1 1.5.2.5.4 1.2.5 2.4.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.2 1.9-.5 2.4-.2.6-.5 1-1 1.5-.4.4-.9.7-1.5 1-.5.2-1.2.4-2.4.5-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.9-.2-2.4-.5-.6-.2-1-.5-1.5-1-.4-.4-.7-.9-1-1.5-.2-.5-.4-1.2-.5-2.4C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.2-1.9.5-2.4.2-.6.5-1 1-1.5.4-.4.9-.7 1.5-1 .5-.2 1.2-.4 2.4-.5C8.4 2.2 8.8 2.2 12 2.2m0-2.2C8.7 0 8.3 0 7 0.1 5.7.2 4.8.4 4 .8c-.9.3-1.6.8-2.3 1.5C1 3.1.6 3.8.3 4.7.1 5.5-.1 6.4 0 7.7.1 9 .1 9.4.1 12s0 3 .1 4.3c.1 1.3.3 2.2.7 3 .3.9.8 1.6 1.5 2.3.7.7 1.4 1.1 2.3 1.5.8.3 1.7.5 3 .7C8.3 24 8.7 24 12 24s3.7 0 5-.1c1.3-.1 2.2-.3 3-.7.9-.3 1.6-.8 2.3-1.5.7-.7 1.1-1.4 1.5-2.3.3-.8.5-1.7.7-3 .1-1.3.1-1.7.1-5s0-3.7-.1-5c-.1-1.3-.3-2.2-.7-3-.3-.9-.8-1.6-1.5-2.3C20.6 1.6 19.9 1.1 19 .8c-.8-.3-1.7-.5-3-.7C15.7 0 15.3 0 12 0z" />
+    <path d="M12 5.8A6.2 6.2 0 1 0 12 18.2 6.2 6.2 0 0 0 12 5.8zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" />
+    <circle cx="18.4" cy="5.6" r="1.4" />
+  </svg>
+)
+
+export const FacebookIcon = ({ size = 18, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    aria-hidden="true"
+    fill="currentColor"
+  >
+    <path d="M22 12.1C22 6.5 17.5 2 11.9 2S2 6.5 2 12.1c0 5 3.7 9.1 8.4 9.9v-7H8.1v-2.9h2.3V9.9c0-2.3 1.4-3.5 3.4-3.5.9 0 1.9.1 1.9.1v2.4h-1.2c-1.2 0-1.5.7-1.5 1.5v1.8h2.7l-.4 2.9h-2.3v7C18.3 21.2 22 17.1 22 12.1z" />
+  </svg>
+)
+
+export const YoutubeIcon = ({ size = 18, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    aria-hidden="true"
+    fill="currentColor"
+  >
+    <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.4 31.4 0 0 0 0 12a31.4 31.4 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.4 31.4 0 0 0 24 12a31.4 31.4 0 0 0-.5-5.8zM9.8 15.5v-7L16 12l-6.2 3.5z" />
   </svg>
 )
 
@@ -661,7 +723,7 @@ const categoryIcons = {
 
 export const CategoryIcon = ({ name, className = '', size = 24 }) => {
   const IconComponent = categoryIcons[name] || SpiceIcon
-  return <IconComponent className={className} size={size} strokeWidth={1.7} />
+  return <IconComponent className={className} size={size} strokeWidth={1.85} />
 }
 
 const subcategoryIcons = {

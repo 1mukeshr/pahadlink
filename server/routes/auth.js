@@ -177,7 +177,7 @@ router.post('/reset-password', async (req, res) => {
   }
 })
 
-/** POST /api/auth/google — stub until Google OAuth credentials are set */
+/** POST /api/auth/google - stub until Google OAuth credentials are set */
 router.post('/google', async (req, res) => {
   const { credential, idToken } = req.body
   if (!process.env.GOOGLE_CLIENT_ID) {

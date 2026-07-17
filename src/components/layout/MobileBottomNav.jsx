@@ -16,17 +16,19 @@ const hiddenExact = new Set([
 ])
 
 /**
- * Fixed quick nav — mobile only.
+ * Fixed quick nav - mobile only.
  */
 const MobileBottomNav = () => {
   const { pathname } = useLocation()
-  const { isAuthenticated } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const { cartCount, wishlistCount, cartOpen, openCart } = useShop()
 
   if (hiddenExact.has(pathname)) return null
 
   const accountTo = isAuthenticated ? ROUTES.ACCOUNT : ROUTES.LOGIN
-  const accountLabel = isAuthenticated ? 'Account' : 'Login'
+  const accountLabel = isAuthenticated
+    ? user?.name?.split(' ')[0] || user?.username || 'Account'
+    : 'Login'
   const shopActive =
     pathname === ROUTES.SHOP ||
     pathname.startsWith('/category/') ||

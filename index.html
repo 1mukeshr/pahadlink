@@ -2,12 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
-    <link rel="icon" href="/favicon-48.png" type="image/png" sizes="48x48" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" href="./favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="./favicon-48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./site.webmanifest" />
+    <meta name="theme-color" content="#0A4F33" />
+    <meta name="msapplication-TileColor" content="#0A4F33" />
+    <meta name="msapplication-TileImage" content="./icons/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PahadLink — Pure Himalayan Goods</title>
+    <title>PahadLink - Pure Himalayan Goods</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -27,17 +32,14 @@
         opacity: 1;
         visibility: visible;
         transition:
-          opacity 0.55s ease,
-          visibility 0.55s ease,
-          transform 0.55s ease;
-        will-change: opacity, transform;
+          opacity 0.3s ease,
+          visibility 0.3s ease;
       }
 
       .boot-loader.is-done {
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        transform: scale(1.02);
       }
 
       .boot-loader__inner {
@@ -51,22 +53,17 @@
 
       .boot-loader__logo {
         display: block;
-        width: min(260px, 72vw);
+        width: min(240px, 70vw);
         height: auto;
-        margin: 0 0 28px;
-        opacity: 0;
-        transform: translateY(8px) scale(0.98);
-        animation: bootIn 0.55s ease 0.08s forwards;
+        margin: 0 0 24px;
       }
 
       .boot-loader__bar {
-        width: 120px;
+        width: 112px;
         height: 3px;
         border-radius: 999px;
         background: #f0e4ea;
         overflow: hidden;
-        opacity: 0;
-        animation: bootIn 0.45s ease 0.28s forwards;
       }
 
       .boot-loader__bar span {
@@ -76,13 +73,6 @@
         border-radius: inherit;
         background: #e62978;
         animation: bootBar 1.1s ease-in-out infinite;
-      }
-
-      @keyframes bootIn {
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
       }
 
       @keyframes bootBar {
@@ -97,15 +87,7 @@
       @media (prefers-reduced-motion: reduce) {
         .boot-loader,
         .boot-loader.is-done {
-          transition: opacity 0.2s ease, visibility 0.2s ease;
-          transform: none;
-        }
-
-        .boot-loader__logo,
-        .boot-loader__bar {
-          animation: none;
-          opacity: 1;
-          transform: none;
+          transition: opacity 0.15s ease, visibility 0.15s ease;
         }
 
         .boot-loader__bar span {
@@ -118,7 +100,7 @@
   <body>
     <div id="boot-loader" class="boot-loader" role="status" aria-live="polite" aria-busy="true">
       <div class="boot-loader__inner">
-        <img class="boot-loader__logo" src="/logo.png" alt="PahadLink" width="260" height="66" />
+        <img class="boot-loader__logo" src="./logo.png" alt="PahadLink" width="260" height="66" />
         <div class="boot-loader__bar" aria-hidden="true">
           <span></span>
         </div>

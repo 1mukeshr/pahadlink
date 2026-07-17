@@ -41,7 +41,7 @@ export function ShopProvider({ children }) {
     const body = document.body
     const prevOverflow = body.style.overflow
 
-    // Keep page width stable — html already uses scrollbar-gutter: stable
+    // Keep page width stable - html already uses scrollbar-gutter: stable
     body.style.overflow = 'hidden'
 
     const onKey = (e) => {

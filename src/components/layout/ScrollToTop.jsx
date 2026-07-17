@@ -2,10 +2,10 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 /**
- * Keep route changes stable: jump to top without smooth-scroll jitter.
+ * Scroll to top on path changes only (not search/filter) to avoid jump flicker.
  */
 const ScrollToTop = () => {
-  const { pathname, search, hash } = useLocation()
+  const { pathname, hash } = useLocation()
 
   useEffect(() => {
     if (hash) {
@@ -18,7 +18,7 @@ const ScrollToTop = () => {
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-  }, [pathname, search, hash])
+  }, [pathname, hash])
 
   return null
 }

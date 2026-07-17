@@ -31,7 +31,7 @@ const TOPICS = [
     id: 'shipping',
     label: 'Shipping',
     Icon: TruckIcon,
-    reply: 'Pan-India delivery in 2–5 days. Free shipping above ₹499.',
+    reply: 'Pan-India delivery in 2-5 days. Free shipping above ₹499.',
   },
   {
     id: 'return',
@@ -45,7 +45,7 @@ const TOPICS = [
     label: 'Products',
     Icon: LeafIcon,
     reply:
-      'Share the product name — we can help with sizes, ingredients, and storage.',
+      'Share the product name - we can help with sizes, ingredients, and storage.',
   },
 ]
 
@@ -135,7 +135,7 @@ const SupportChat = () => {
       if (matched) {
         pushBot(matched.reply, { topicId: matched.id })
       } else {
-        pushBot('Got it — continue on WhatsApp for a quick reply from our team.', {
+        pushBot('Got it - continue on WhatsApp for a quick reply from our team.', {
           handoff: true,
           draft: text,
         })

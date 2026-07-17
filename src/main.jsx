@@ -46,10 +46,10 @@ class RootErrorBoundary extends Component {
 
 function hideBootLoader() {
   const boot = document.getElementById('boot-loader')
-  if (!boot) return
+  if (!boot || boot.classList.contains('is-done')) return
 
   const started = Number(boot.dataset.started || Date.now())
-  const minVisibleMs = 700
+  const minVisibleMs = 420
   const elapsed = Date.now() - started
   const wait = Math.max(0, minVisibleMs - elapsed)
 
@@ -59,7 +59,7 @@ function hideBootLoader() {
 
     window.setTimeout(() => {
       boot.remove()
-    }, 560)
+    }, 300)
   }, wait)
 }
 
@@ -68,20 +68,21 @@ if (rootEl) {
   const boot = document.getElementById('boot-loader')
   if (boot) boot.dataset.started = String(Date.now())
 
-  loadRuntimeConfig().finally(() => {
-    createRoot(rootEl).render(
-      <StrictMode>
-        <RootErrorBoundary>
-          <App />
-        </RootErrorBoundary>
-      </StrictMode>
-    )
+  loadRuntimeConfig()
+    .catch(() => {})
+    .finally(() => {
+      createRoot(rootEl).render(
+        <StrictMode>
+          <RootErrorBoundary>
+            <App />
+          </RootErrorBoundary>
+        </StrictMode>
+      )
 
-    // Let the first paint settle, then fade splash out smoothly
-    requestAnimationFrame(() => {
-      requestAnimationFrame(hideBootLoader)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(hideBootLoader)
+      })
     })
-  })
 } else {
   document.body.innerHTML =
     '<p style="padding:24px;font-family:system-ui">Missing #root element.</p>'

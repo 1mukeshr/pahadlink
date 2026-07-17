@@ -9,10 +9,10 @@ import {
   MailIcon,
   CheckCircleIcon,
   ArrowRightIcon,
+  WhatsAppIcon,
 } from '../components/icons'
 import { submitContact } from '../services/contactService'
 import { ROUTES } from '../config'
-import logo from '../assets/images/logo.png'
 
 const PHONE_DISPLAY = '+91 96904 21423'
 const PHONE_TEL = '+919690421423'
@@ -76,42 +76,55 @@ const Contact = () => {
             <Breadcrumb items={[{ label: 'Contact' }]} />
           </div>
         </div>
+
         <section className="contact-shell" aria-label="Contact PahadLink">
           <aside className="contact-brand">
-            <div className="contact-brand__media" aria-hidden="true" />
-            <div className="contact-brand__veil" aria-hidden="true" />
             <div className="contact-brand__inner">
-              <p className="contact-brand__name">
-                <img src={logo} alt="PahadLink" className="contact-brand__logo" />
-              </p>
-              <h1>Talk to us from the hills</h1>
+              <p className="contact-brand__eyebrow">PahadLink support</p>
+              <h1>We&apos;re here to help</h1>
               <p className="contact-brand__lead">
-                Real people. Clear answers on orders, shipping, and pahadi products.
+                Clear answers on orders, shipping, and pahadi products - from a real team in the hills.
               </p>
 
-              <a href={`tel:${PHONE_TEL}`} className="contact-brand__phone">
-                <PhoneIcon size={18} />
-                {PHONE_DISPLAY}
-              </a>
+              <div className="contact-channels" role="list">
+                <a href={`tel:${PHONE_TEL}`} className="contact-channel" role="listitem">
+                  <span className="contact-channel__icon">
+                    <PhoneIcon size={18} />
+                  </span>
+                  <span className="contact-channel__body">
+                    <strong>Call us</strong>
+                    <span>{PHONE_DISPLAY}</span>
+                  </span>
+                </a>
 
-              <ul className="contact-brand__links">
-                <li>
-                  <a
-                    href={`https://wa.me/${PHONE_WA}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    WhatsApp chat
-                    <ArrowRightIcon size={14} />
-                  </a>
-                </li>
-                <li>
-                  <a href={`mailto:${EMAIL}`}>
-                    {EMAIL}
-                    <ArrowRightIcon size={14} />
-                  </a>
-                </li>
-              </ul>
+                <a
+                  href={`https://wa.me/${PHONE_WA}`}
+                  className="contact-channel"
+                  target="_blank"
+                  rel="noreferrer"
+                  role="listitem"
+                >
+                  <span className="contact-channel__icon contact-channel__icon--wa">
+                    <WhatsAppIcon size={18} />
+                  </span>
+                  <span className="contact-channel__body">
+                    <strong>WhatsApp</strong>
+                    <span>Chat for a quick reply</span>
+                  </span>
+                  <ArrowRightIcon size={14} className="contact-channel__arrow" />
+                </a>
+
+                <a href={`mailto:${EMAIL}`} className="contact-channel" role="listitem">
+                  <span className="contact-channel__icon">
+                    <MailIcon size={18} />
+                  </span>
+                  <span className="contact-channel__body">
+                    <strong>Email</strong>
+                    <span>{EMAIL}</span>
+                  </span>
+                  <ArrowRightIcon size={14} className="contact-channel__arrow" />
+                </a>
+              </div>
 
               <div className="contact-brand__meta">
                 <p>

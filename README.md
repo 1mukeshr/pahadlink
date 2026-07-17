@@ -1,6 +1,6 @@
 # PahadLink
 
-Himalayan products store — React + Express + MongoDB (`Pahadi_link`).
+Himalayan products store - React + Express + MongoDB (`Pahadi_link`).
 
 ## Quick start (local)
 
@@ -18,7 +18,7 @@ npm start
 
 ## GitHub Pages + real backend (required for login/register online)
 
-GitHub Pages is **static** — it cannot run Express or MongoDB. You need a hosted API.
+GitHub Pages is **static** - it cannot run Express or MongoDB. You need a hosted API.
 
 ### 1) MongoDB Atlas
 

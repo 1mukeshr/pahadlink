@@ -14,6 +14,7 @@ import {
   CartDrawer,
   MobileBottomNav,
   ScrollToTop,
+  RouteProgress,
 } from './components/layout'
 import SupportChat from './components/support/SupportChat'
 import AppRoutes from './routes/AppRoutes'
@@ -24,6 +25,7 @@ function App() {
       <ShopProvider>
         <HashRouter>
           <ScrollToTop />
+          <RouteProgress />
           <Header />
           <AppRoutes />
           <CartDrawer />

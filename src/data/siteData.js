@@ -33,16 +33,22 @@ export const productBanners = [
   {
     id: 'raw-honey',
     alt: 'Raw forest honey from the Himalayas',
+    title: 'Raw forest honey',
+    text: 'Pure, unprocessed honey from Himalayan apiaries.',
     image: bannerHoney,
   },
   {
     id: 'pahadi-rajma',
     alt: 'Pahadi rajma - kidney beans from the hills',
+    title: 'Pahadi rajma',
+    text: 'Hill-grown kidney beans with deep, earthy flavour.',
     image: bannerRajma,
   },
   {
     id: 'herbal-tea',
     alt: 'Himalayan herbal tea mountain blend',
+    title: 'Herbal mountain tea',
+    text: 'Soothing blends picked from the high hills.',
     image: bannerTea,
   },
 ]
@@ -50,9 +56,9 @@ export const productBanners = [
 export const categoryGroups = [
   {
     id: 'organic-food',
-    name: 'Organic Food',
+    name: 'Organic Foods',
     headline: 'Hill staples for everyday cooking',
-    blurb: 'Rajma, dals, millets, and rice from Himalayan farms — clean, honest, and packed for your kitchen.',
+    blurb: 'Rajma, dals, millets, and rice from Himalayan farms - clean, honest, and packed for your kitchen.',
     banner: categoryBannerOrganic,
     items: [
       { name: 'Mandua', icon: 'grain' },
@@ -65,7 +71,7 @@ export const categoryGroups = [
   },
   {
     id: 'honey-natural',
-    name: 'Honey & Naturals',
+    name: 'Natural Products',
     headline: 'From forest to your table',
     blurb: 'Raw honey, herbal teas, and natural pantry picks gathered with care from the hills.',
     banner: categoryBannerHoney,
@@ -79,7 +85,7 @@ export const categoryGroups = [
   },
   {
     id: 'spiritual',
-    name: 'Spiritual',
+    name: 'Spiritual & Puja Items',
     headline: 'Sacred picks from the Himalaya',
     blurb: 'Gangajal, rudraksha, and puja essentials for home rituals and meaningful gifting.',
     banner: categoryBannerSpiritual,
@@ -92,7 +98,7 @@ export const categoryGroups = [
   },
   {
     id: 'clothing',
-    name: 'Clothing',
+    name: 'Pahadi Clothing',
     headline: 'Wear the craft of the hills',
     blurb: 'Pahadi topi, handwoven fabrics, and warm pieces made with traditional skill.',
     banner: categoryBannerClothing,
@@ -118,7 +124,7 @@ export const categoryGroups = [
   },
   {
     id: 'snacks-sweets',
-    name: 'Sweets',
+    name: 'Traditional Sweets',
     headline: 'Taste of home, made traditional',
     blurb: 'Bal mithai, singori, and classic hill sweets prepared the way you remember.',
     banner: categoryBannerSweets,
@@ -131,7 +137,7 @@ export const categoryGroups = [
   },
   {
     id: 'gift-hampers',
-    name: 'Gifts',
+    name: 'Gifts & Souvenirs',
     headline: 'Share pahadi taste with love',
     blurb: 'Festival hampers and organic gift boxes ready to send warmth from the hills.',
     banner: categoryBannerGifts,
@@ -147,7 +153,7 @@ export const features = [
   {
     title: 'Direct from the Hills',
     icon: 'mountain',
-    desc: 'We work with pahadi farmers and artisans — not middlemen — so you get real mountain products at fair prices.',
+    desc: 'We work with pahadi farmers and artisans - not middlemen - so you get real mountain products at fair prices.',
     points: ['Village-sourced goods', 'Fair pay for makers', 'Authentic hill recipes'],
   },
   {
@@ -159,7 +165,7 @@ export const features = [
   {
     title: 'Trusted Every Order',
     icon: 'shield',
-    desc: 'Checked, packed with care, and delivered safely — so quality stays the same from first order to repeat.',
+    desc: 'Checked, packed with care, and delivered safely - so quality stays the same from first order to repeat.',
     points: ['Quality checks', 'Secure packaging', 'Reliable delivery'],
   },
 ]

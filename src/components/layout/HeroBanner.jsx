@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowRightIcon } from '../icons'
 import { ROUTES, categoryPath, productPath } from '../../config'
 import { productBanners } from '../../data/siteData'
 
 /** Large product-related hero banners */
 const LARGE_SLIDES = productBanners.map((banner) => ({
   alt: banner.alt,
+  title: banner.title,
+  text: banner.text,
   to: productPath(banner.id),
   image: banner.image,
 }))
@@ -15,12 +18,16 @@ const SMALL_PANELS = [
   {
     to: productPath('raw-honey'),
     image: productBanners[0].image,
-    label: 'Shop raw honey',
+    title: 'Raw honey',
+    text: 'Unprocessed forest honey from local keepers.',
+    button: 'Shop honey',
   },
   {
     to: categoryPath('organic-food'),
     image: productBanners[1].image,
-    label: 'Shop organic food',
+    title: 'Organic foods',
+    text: 'Hill staples for everyday pahadi cooking.',
+    button: 'Shop organic',
   },
 ]
 
@@ -29,6 +36,7 @@ const SMALL_PANELS = [
  */
 const HeroBanner = () => {
   const [index, setIndex] = useState(0)
+  const active = LARGE_SLIDES[index]
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -47,23 +55,25 @@ const HeroBanner = () => {
                 key={slide.alt}
                 className={`mf-hero__panel-img${i === index ? ' is-active' : ''}`}
               >
-                <Link to={slide.to}>
-                  <img
-                    src={slide.image}
-                    alt={slide.alt}
-                    width={1200}
-                    height={675}
-                    loading={i === 0 ? 'eager' : 'lazy'}
-                    decoding="async"
-                    fetchPriority={i === 0 ? 'high' : 'auto'}
-                  />
-                </Link>
+                <img
+                  src={slide.image}
+                  alt={slide.alt}
+                  width={1200}
+                  height={675}
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  fetchPriority={i === 0 ? 'high' : 'auto'}
+                />
               </div>
             ))}
 
-            <div className="mf-hero__cta">
+            <div className="mf-hero__cta" key={active.alt}>
+              <p className="mf-hero__eyebrow">From the hills</p>
+              <h2 className="mf-hero__title">{active.title}</h2>
+              <p className="mf-hero__text">{active.text}</p>
               <Link to={ROUTES.SHOP} className="mf-hero__shop-btn">
-                Shop now
+                <span>Shop now</span>
+                <ArrowRightIcon size={16} />
               </Link>
             </div>
 
@@ -84,22 +94,24 @@ const HeroBanner = () => {
 
           <div className="mf-hero__smalls-row">
             {SMALL_PANELS.map((panel) => (
-              <div key={panel.label} className="mf-hero__small-wrap">
-                <Link
-                  to={panel.to}
-                  className="mf-hero__video-link"
-                  aria-label={panel.label}
-                >
-                  <img
-                    className="mf-hero__video"
-                    src={panel.image}
-                    alt={panel.label}
-                    width={700}
-                    height={400}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </Link>
+              <div key={panel.title} className="mf-hero__small-wrap">
+                <img
+                  className="mf-hero__video"
+                  src={panel.image}
+                  alt=""
+                  width={700}
+                  height={400}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="mf-hero__small-content">
+                  <h3 className="mf-hero__small-title">{panel.title}</h3>
+                  <p className="mf-hero__small-text">{panel.text}</p>
+                  <Link to={panel.to} className="mf-hero__small-btn">
+                    <span>{panel.button}</span>
+                    <ArrowRightIcon size={14} />
+                  </Link>
+                </div>
               </div>
             ))}
           </div>

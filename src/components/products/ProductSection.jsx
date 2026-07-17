@@ -16,7 +16,7 @@ const ProductSection = ({
   tabs = false,
   limit = 5,
   seeAllHref = ROUTES.SHOP,
-  seeAllLabel = 'View all',
+  seeAllLabel,
   className = '',
 }) => {
   const [activeTab, setActiveTab] = useState(tag)
@@ -25,6 +25,8 @@ const ProductSection = ({
   const seeAllProps = seeAllHref.startsWith('/')
     ? { to: seeAllHref }
     : { href: seeAllHref }
+  const resolvedSeeAllLabel =
+    seeAllLabel || (title ? `View all ${title}` : 'View all')
 
   return (
     <section className={`product-section ${className}`.trim()} id={id}>
@@ -61,7 +63,7 @@ const ProductSection = ({
 
         <div className="product-section__footer">
           <SeeAllTag {...seeAllProps} className="product-section__see-all">
-            <span>{seeAllLabel}</span>
+            <span>{resolvedSeeAllLabel}</span>
             <ArrowRightIcon size={16} />
           </SeeAllTag>
         </div>

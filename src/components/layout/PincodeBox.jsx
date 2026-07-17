@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
-  ChevronDownIcon,
+  ChevronRightIcon,
   CloseIcon,
+  DropdownIcon,
   LocateIcon,
   MapPinIcon,
   SearchIcon,
@@ -10,17 +10,17 @@ import {
 import { STORAGE } from '../../config'
 
 const SUGGESTED = [
-  { label: 'Dehradun, Uttarakhand', pin: '248001' },
-  { label: 'Mussoorie, Uttarakhand', pin: '248179' },
-  { label: 'Nainital, Uttarakhand', pin: '263001' },
-  { label: 'Shimla, Himachal Pradesh', pin: '171001' },
-  { label: 'Delhi', pin: '110001' },
-  { label: 'Noida, Uttar Pradesh', pin: '201301' },
-  { label: 'Gurgaon, Haryana', pin: '122001' },
-  { label: 'Chandigarh', pin: '160017' },
-  { label: 'Jaipur, Rajasthan', pin: '302001' },
-  { label: 'Mumbai, Maharashtra', pin: '400001' },
-  { label: 'Bengaluru, Karnataka', pin: '560001' },
+  { label: 'Dehradun, Uttarakhand', pin: '248001', area: 'Uttarakhand' },
+  { label: 'Mussoorie, Uttarakhand', pin: '248179', area: 'Uttarakhand' },
+  { label: 'Nainital, Uttarakhand', pin: '263001', area: 'Uttarakhand' },
+  { label: 'Shimla, Himachal Pradesh', pin: '171001', area: 'Himachal Pradesh' },
+  { label: 'Delhi', pin: '110001', area: 'Delhi NCR' },
+  { label: 'Noida, Uttar Pradesh', pin: '201301', area: 'Delhi NCR' },
+  { label: 'Gurgaon, Haryana', pin: '122001', area: 'Delhi NCR' },
+  { label: 'Chandigarh', pin: '160017', area: 'Chandigarh' },
+  { label: 'Jaipur, Rajasthan', pin: '302001', area: 'Rajasthan' },
+  { label: 'Mumbai, Maharashtra', pin: '400001', area: 'Maharashtra' },
+  { label: 'Bengaluru, Karnataka', pin: '560001', area: 'Karnataka' },
 ]
 
 const MOBILE_MQ = '(max-width: 749px)'
@@ -34,53 +34,103 @@ const readSaved = () => {
   }
 }
 
+const placeTitle = (label = '') => label.split(',')[0].trim() || label
+
+const placeSubtitle = (item) => {
+  const parts = []
+  if (item.area) parts.push(item.area)
+  if (item.pin) parts.push(item.pin)
+  if (!parts.length && item.label?.includes(',')) {
+    return item.label.split(',').slice(1).join(',').trim()
+  }
+  return parts.join(' · ')
+}
+
+const clearPanelTop = (el) => {
+  if (!el) return
+  el.style.top = ''
+  el.style.maxHeight = ''
+}
+
 const PincodeBox = () => {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [location, setLocation] = useState(readSaved)
   const [geoState, setGeoState] = useState('idle') // idle | loading | error | denied
   const [geoError, setGeoError] = useState('')
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia(MOBILE_MQ).matches : false
-  )
   const boxRef = useRef(null)
   const panelRef = useRef(null)
   const inputRef = useRef(null)
 
-  useEffect(() => {
-    const mq = window.matchMedia(MOBILE_MQ)
-    const onChange = () => setIsMobile(mq.matches)
-    onChange()
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
+  const closePanel = () => {
+    setOpen(false)
+    setQuery('')
+    setGeoState('idle')
+    setGeoError('')
+  }
 
-  useEffect(() => {
-    const onDocClick = (e) => {
-      const inTrigger = boxRef.current?.contains(e.target)
-      const inPanel = panelRef.current?.contains(e.target)
-      if (!inTrigger && !inPanel) setOpen(false)
+  // Keep mobile panel under the trigger and inside the viewport
+  useLayoutEffect(() => {
+    if (!open) {
+      clearPanelTop(panelRef.current)
+      return undefined
     }
-    const onKey = (e) => {
-      if (e.key === 'Escape') setOpen(false)
+
+    const placePanel = () => {
+      const box = boxRef.current
+      const panel = panelRef.current
+      if (!box || !panel) return
+
+      if (!window.matchMedia(MOBILE_MQ).matches) {
+        clearPanelTop(panel)
+        return
+      }
+
+      const rect = box.getBoundingClientRect()
+      const pad = 10
+      const top = Math.round(rect.bottom + 8)
+      const maxHeight = Math.max(200, Math.round(window.innerHeight - top - pad))
+
+      panel.style.top = `${top}px`
+      panel.style.maxHeight = `${maxHeight}px`
     }
-    if (open) {
-      document.addEventListener('mousedown', onDocClick)
-      document.addEventListener('keydown', onKey)
-      window.setTimeout(() => inputRef.current?.focus(), 60)
-    }
+
+    placePanel()
+    window.addEventListener('resize', placePanel)
+    window.addEventListener('scroll', placePanel, true)
     return () => {
-      document.removeEventListener('mousedown', onDocClick)
-      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', placePanel)
+      window.removeEventListener('scroll', placePanel, true)
+      clearPanelTop(panelRef.current)
     }
   }, [open])
 
   useEffect(() => {
     if (!open) return undefined
+
+    const onDocClick = (e) => {
+      if (!boxRef.current?.contains(e.target)) closePanel()
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') closePanel()
+    }
+
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('touchstart', onDocClick, { passive: true })
+    document.addEventListener('keydown', onKey)
+    window.setTimeout(() => inputRef.current?.focus(), 60)
+
     const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    document.body.classList.add('pincode-sheet-open')
+    const mobile = window.matchMedia(MOBILE_MQ).matches
+    if (mobile) {
+      document.body.style.overflow = 'hidden'
+      document.body.classList.add('pincode-sheet-open')
+    }
+
     return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('touchstart', onDocClick)
+      document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
       document.body.classList.remove('pincode-sheet-open')
     }
@@ -92,16 +142,13 @@ const PincodeBox = () => {
     return SUGGESTED.filter(
       (item) =>
         item.label.toLowerCase().includes(q) || item.pin.includes(q)
-    ).slice(0, 6)
+    ).slice(0, 8)
   }, [query])
 
   const saveLocation = (next) => {
     setLocation(next)
     localStorage.setItem(STORAGE.LOCATION, JSON.stringify(next))
-    setOpen(false)
-    setQuery('')
-    setGeoState('idle')
-    setGeoError('')
+    closePanel()
   }
 
   const selectSuggestion = (item) => {
@@ -197,137 +244,165 @@ const PincodeBox = () => {
   const displayLabel = location?.label
     || (location?.pin ? `Pincode ${location.pin}` : 'Select location')
 
-  const panel = (
-    <div
-      className="pincode-panel"
-      ref={panelRef}
-      role="dialog"
-      aria-modal={isMobile ? true : undefined}
-      aria-label="Your location"
-    >
-      <header className="pincode-panel__head">
-        <div className="pincode-panel__handle" aria-hidden="true" />
-        <h2>Your Location</h2>
-        <button
-          type="button"
-          className="pincode-panel__close"
-          aria-label="Close"
-          onClick={() => setOpen(false)}
-        >
-          <CloseIcon size={16} />
-        </button>
-      </header>
-
-      <div className="pincode-panel__body">
-        <form className="pincode-search" onSubmit={onSearchSubmit}>
-          <SearchIcon size={16} className="pincode-search__icon" />
-          <input
-            ref={inputRef}
-            type="search"
-            inputMode="search"
-            enterKeyHint="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search city or 6-digit pincode"
-            aria-label="Search a new address"
-            autoComplete="off"
-          />
-        </form>
-
-        {results.length > 0 && (
-          <ul className="pincode-results" role="listbox">
-            {results.map((item) => (
-              <li key={`${item.pin}-${item.label}`}>
-                <button
-                  type="button"
-                  onClick={() => selectSuggestion(item)}
-                >
-                  <MapPinIcon size={15} />
-                  <span>
-                    <strong>{item.label}</strong>
-                    <em>PIN {item.pin}</em>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="pincode-gps">
-          <span className="pincode-gps__icon" aria-hidden="true">
-            <LocateIcon size={18} />
-          </span>
-          <div className="pincode-gps__text">
-            <strong>Use current location</strong>
-            <span>Faster delivery estimates near you</span>
-          </div>
-          <button
-            type="button"
-            className="pincode-gps__enable"
-            onClick={useCurrentLocation}
-            disabled={geoState === 'loading'}
-          >
-            {geoState === 'loading' ? 'Locating…' : 'Enable'}
-          </button>
-        </div>
-
-        {geoError && <p className="pincode-gps__error">{geoError}</p>}
-
-        {location && (
-          <p className="pincode-selected">
-            Delivering to <strong>{location.label}</strong>
-            {location.pin ? ` · ${location.pin}` : ''}
-          </p>
-        )}
-
-        <div className="pincode-map" aria-hidden="true">
-          <div className="pincode-map__clouds" />
-          <div className="pincode-map__land">
-            <span className="pincode-map__pin">
-              <MapPinIcon size={28} />
-            </span>
-          </div>
-          <span className="pincode-map__scan" />
-        </div>
-      </div>
-    </div>
-  )
+  const showSearchResults = query.trim().length > 0
+  const listItems = showSearchResults ? results : SUGGESTED.slice(0, 6)
 
   return (
     <div className={`pincode-box${open ? ' is-open' : ''}`} ref={boxRef}>
       <button
         type="button"
         className="pincode-trigger"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? closePanel() : setOpen(true))}
         aria-expanded={open}
-        aria-haspopup="dialog"
+        aria-haspopup="listbox"
       >
-        <MapPinIcon size={20} className="pincode-trigger-icon" />
+        <MapPinIcon size={18} className="pincode-trigger-icon" />
         <span className="pincode-trigger-text">
-          <span className="pincode-label">Delivery in 2-3 days</span>
-          <span className="pincode-value">{displayLabel}</span>
+          <span className="pincode-label">
+            <span className="pincode-label__full">Delivery in 2-3 days</span>
+            <span className="pincode-label__short">Delivery</span>
+          </span>
+          <span className="pincode-value-row">
+            <span className="pincode-value">{displayLabel}</span>
+            <DropdownIcon
+              size={16}
+              className={`pincode-trigger-chevron${open ? ' pincode-trigger-chevron--open' : ''}`}
+            />
+          </span>
         </span>
-        <ChevronDownIcon
-          size={14}
-          className={`pincode-trigger-chevron${open ? ' pincode-trigger-chevron--open' : ''}`}
-        />
       </button>
 
-      {open &&
-        (isMobile
-          ? createPortal(
-              <div className="pincode-overlay">
+      {open && (
+        <div
+          className="pincode-panel"
+          ref={panelRef}
+          role="dialog"
+          aria-label="Select your location"
+        >
+          <header className="pincode-panel__head">
+            <h2>Select your location</h2>
+            <button
+              type="button"
+              className="pincode-panel__close"
+              aria-label="Close"
+              onClick={closePanel}
+            >
+              <CloseIcon size={16} />
+            </button>
+          </header>
+
+          <div className="pincode-panel__body">
+            <form className="pincode-search" onSubmit={onSearchSubmit}>
+              <SearchIcon size={16} className="pincode-search__icon" />
+              <input
+                ref={inputRef}
+                type="search"
+                inputMode="search"
+                enterKeyHint="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search area or pincode"
+                aria-label="Search for area or pincode"
+                autoComplete="off"
+              />
+              {query.trim() && (
                 <button
                   type="button"
-                  className="pincode-backdrop"
-                  aria-label="Close location picker"
-                  onClick={() => setOpen(false)}
-                />
-                {panel}
-              </div>,
-              document.body
-            )
-          : panel)}
+                  className="pincode-search__clear"
+                  aria-label="Clear search"
+                  onClick={() => setQuery('')}
+                >
+                  <CloseIcon size={14} />
+                </button>
+              )}
+            </form>
+
+            <button
+              type="button"
+              className="pincode-gps"
+              onClick={useCurrentLocation}
+              disabled={geoState === 'loading'}
+            >
+              <span className="pincode-gps__icon" aria-hidden="true">
+                <LocateIcon size={18} />
+              </span>
+              <span className="pincode-gps__text">
+                <strong>
+                  {geoState === 'loading' ? 'Detecting location...' : 'Use current location'}
+                </strong>
+                <span>Using GPS</span>
+              </span>
+              <ChevronRightIcon size={16} className="pincode-gps__chevron" />
+            </button>
+
+            {geoError && <p className="pincode-gps__error">{geoError}</p>}
+
+            {location && !showSearchResults && (
+              <section className="pincode-section">
+                <p className="pincode-section__label">Saved address</p>
+                <ul className="pincode-results" role="listbox">
+                  <li>
+                    <button
+                      type="button"
+                      className="pincode-results__item is-active"
+                      onClick={() =>
+                        saveLocation({
+                          ...location,
+                          source: location.source || 'saved',
+                        })
+                      }
+                    >
+                      <MapPinIcon size={16} />
+                      <span>
+                        <strong>{placeTitle(location.label)}</strong>
+                        <em>
+                          {[location.label, location.pin].filter(Boolean).join(' · ')}
+                        </em>
+                      </span>
+                    </button>
+                  </li>
+                </ul>
+              </section>
+            )}
+
+            <section className="pincode-section">
+              <p className="pincode-section__label">
+                {showSearchResults
+                  ? results.length
+                    ? 'Search results'
+                    : 'No results found'
+                  : 'Popular places'}
+              </p>
+
+              {listItems.length > 0 ? (
+                <ul className="pincode-results" role="listbox">
+                  {listItems.map((item) => (
+                    <li key={`${item.pin}-${item.label}`}>
+                      <button
+                        type="button"
+                        className="pincode-results__item"
+                        onClick={() => selectSuggestion(item)}
+                      >
+                        <MapPinIcon size={16} />
+                        <span>
+                          <strong>{placeTitle(item.label)}</strong>
+                          <em>{placeSubtitle(item) || item.label}</em>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                showSearchResults && (
+                  <p className="pincode-empty">
+                    Try a city name or 6-digit pincode
+                  </p>
+                )
+              )}
+            </section>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -4,7 +4,7 @@ import Breadcrumb from '../../components/layout/Breadcrumb'
 import FaqSection from '../../components/layout/FaqSection'
 import Footer from '../../components/layout/Footer'
 import ProductCard from '../../components/products/ProductCard'
-import { CloseIcon, SearchIcon } from '../../components/icons'
+import { CloseIcon, SearchIcon, ArrowLeftIcon } from '../../components/icons'
 import { ROUTES } from '../../config'
 import {
   categoryGroups,
@@ -201,7 +201,7 @@ const ShopFilters = ({
               />
             </label>
             <span className="shop-price-dash" aria-hidden="true">
-              –
+              -
             </span>
             <label>
               <span>Max</span>
@@ -270,7 +270,6 @@ const Shop = () => {
       return undefined
     }
     beginFilterLoading()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
     return () => {
       if (filterLoaderTimer.current) clearTimeout(filterLoaderTimer.current)
     }
@@ -679,6 +678,7 @@ const Shop = () => {
                         Clear filters
                       </button>
                       <Link to={ROUTES.HOME} className="shop-empty__link">
+                        <ArrowLeftIcon size={14} />
                         Back to home
                       </Link>
                     </div>

@@ -26,7 +26,7 @@ const initialsFrom = (name, email) => {
 const formatPrice = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 
 const formatDate = (iso) => {
-  if (!iso) return '—'
+  if (!iso) return '-'
   try {
     return new Date(iso).toLocaleDateString('en-IN', {
       day: 'numeric',
@@ -34,7 +34,7 @@ const formatDate = (iso) => {
       year: 'numeric',
     })
   } catch {
-    return '—'
+    return '-'
   }
 }
 
@@ -85,21 +85,21 @@ export const AccountPage = () => {
                     <UserIcon size={14} />
                     Name
                   </span>
-                  <strong>{user?.name || '—'}</strong>
+                  <strong>{user?.name || '-'}</strong>
                 </li>
                 <li>
                   <span className="account-card__label">
                     <MailIcon size={14} />
                     Email
                   </span>
-                  <strong>{user?.email || '—'}</strong>
+                  <strong>{user?.email || '-'}</strong>
                 </li>
                 <li>
                   <span className="account-card__label">
                     <UserIcon size={14} />
                     Username
                   </span>
-                  <strong>{user?.username || '—'}</strong>
+                  <strong>{user?.username || '-'}</strong>
                 </li>
               </ul>
 
@@ -183,11 +183,11 @@ export const OrdersPage = () => {
             <div className="orders-trust">
               <div>
                 <TruckIcon size={16} />
-                <span>Usually ships in 24–48 hrs</span>
+                <span>Usually ships in 24-48 hrs</span>
               </div>
               <div>
                 <PackageIcon size={16} />
-                <span>Pan-India delivery in 2–5 days</span>
+                <span>Pan-India delivery in 2-5 days</span>
               </div>
               <div>
                 <PhoneIcon size={16} />
@@ -202,7 +202,7 @@ export const OrdersPage = () => {
                 </span>
                 <h2>No orders yet</h2>
                 <p>
-                  Your purchases will appear here after checkout — with order ID,
+                  Your purchases will appear here after checkout - with order ID,
                   status, and item details.
                 </p>
                 <div className="orders-empty__actions">
@@ -276,7 +276,7 @@ export const OrdersPage = () => {
                       <div>
                         <span>Ship to</span>
                         <strong>
-                          {order.city || '—'}
+                          {order.city || '-'}
                           {order.state ? `, ${order.state}` : ''}
                         </strong>
                       </div>

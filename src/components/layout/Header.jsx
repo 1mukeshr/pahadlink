@@ -5,11 +5,12 @@ import PincodeBox from './PincodeBox'
 import HeaderSearch from './HeaderSearch'
 import {
   UserIcon,
-  ChevronDownIcon,
+  DropdownIcon,
   HeartIcon,
   CartIcon,
   PackageIcon,
   LogOutIcon,
+  ArrowLeftIcon,
 } from '../icons'
 import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
@@ -118,7 +119,7 @@ const Header = () => {
                 </span>
                 <span className="header-icon-label">
                   Login
-                  <ChevronDownIcon size={12} className="header-account-chevron" />
+                  <DropdownIcon size={14} className="header-account-chevron" />
                 </span>
               </NavLink>
             )}
@@ -135,8 +136,11 @@ const Header = () => {
                     <UserIcon size={20} />
                   </span>
                   <span className="header-icon-label">
-                    {user?.name?.split(' ')[0] || user?.username}
-                    <ChevronDownIcon size={12} className="header-account-chevron" />
+                    {user?.name?.split(' ')[0] || user?.username || 'Account'}
+                    <DropdownIcon
+                      size={14}
+                      className={`header-account-chevron${menuOpen ? ' is-open' : ''}`}
+                    />
                   </span>
                 </button>
 
@@ -200,7 +204,8 @@ const Header = () => {
 
             {isAuthPage && (
               <Link to="/" className="header-auth-home">
-                Back to Home
+                <ArrowLeftIcon size={16} className="header-auth-home__icon" />
+                <span>Back to Home</span>
               </Link>
             )}
           </nav>

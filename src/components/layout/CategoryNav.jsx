@@ -1,6 +1,6 @@
 import { memo, useState, useRef, useEffect, useCallback } from 'react'
 import { NavLink } from 'react-router-dom'
-import { CategoryIcon, ArrowLeftIcon, ArrowRightIcon } from '../icons'
+import { ArrowLeftIcon, ArrowRightIcon } from '../icons'
 import { categoryPath } from '../../config'
 import { categoryGroups } from '../../data/siteData'
 
@@ -85,12 +85,7 @@ const CategoryNav = () => {
                     `header-category-link${isActive ? ' header-category-link--active' : ''}`
                   }
                 >
-                  <span className="header-category-icon" data-category={group.id}>
-                    <CategoryIcon name={group.id} size={18} />
-                  </span>
-                  <span className="header-category-label">
-                    <span className="header-category-name">{group.name}</span>
-                  </span>
+                  <span className="header-category-name">{group.name}</span>
                 </NavLink>
               </div>
             ))}

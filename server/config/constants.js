@@ -1,5 +1,5 @@
 /**
- * Shared roles — keep in sync with frontend src/config.js
+ * Shared roles - keep in sync with frontend src/config.js
  */
 export const ROLES = ['customer', 'seller', 'admin']
 

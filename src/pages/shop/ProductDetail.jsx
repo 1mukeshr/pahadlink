@@ -134,7 +134,7 @@ const ProductDetail = () => {
   }
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [id])
 
   useEffect(() => {
@@ -552,7 +552,7 @@ const ProductDetail = () => {
                   to={categoryPath(product.categoryId)}
                   className="product-section__see-all"
                 >
-                  <span>View all</span>
+                  <span>View all {product.categoryName}</span>
                   <ArrowRightIcon size={16} />
                 </Link>
               </div>

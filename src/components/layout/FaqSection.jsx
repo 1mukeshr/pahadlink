@@ -7,6 +7,7 @@ import { getFaqs } from '../../data/faqData'
 const FaqSection = ({
   page = 'home',
   title = 'Frequently asked questions',
+  subtitle,
   items,
   id = 'faq',
   className = '',
@@ -25,6 +26,7 @@ const FaqSection = ({
       <div className="container faq-section__inner">
         <div className="faq-section__head">
           <h2>{title}</h2>
+          {subtitle && <p className="faq-section__sub">{subtitle}</p>}
         </div>
 
         <div className="faq-section__list">

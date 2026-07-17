@@ -7,6 +7,7 @@ import {
   TruckIcon,
   CheckCircleIcon,
   MountainIcon,
+  HillsIcon,
   LeafIcon,
   StarRating,
 } from '../components/icons'
@@ -33,7 +34,7 @@ const Home = () => {
         <HeroBanner />
 
         {/* 1. Trust strip */}
-        <section className="benefits" aria-label="Why shop with us">
+        <section className="benefits benefits--home" aria-label="Why shop with us">
           <div className="container benefits-grid">
             <div className="benefit-item">
               <div className="benefit-icon"><ShieldIcon size={20} /></div>
@@ -50,14 +51,14 @@ const Home = () => {
               </div>
             </div>
             <div className="benefit-item">
-              <div className="benefit-icon benefit-icon--secondary"><CheckCircleIcon size={20} /></div>
+              <div className="benefit-icon"><CheckCircleIcon size={20} /></div>
               <div>
                 <h4>100% natural</h4>
                 <p>No artificial additives</p>
               </div>
             </div>
             <div className="benefit-item">
-              <div className="benefit-icon benefit-icon--secondary"><MountainIcon size={20} /></div>
+              <div className="benefit-icon"><HillsIcon size={20} /></div>
               <div>
                 <h4>From the hills</h4>
                 <p>Direct from local makers</p>
@@ -69,13 +70,11 @@ const Home = () => {
         {/* 2. Primary products */}
         <ProductSection
           id="bestsellers"
-          className="product-section--tight"
           title="Best Sellers"
-          subtitle="Start with what pahadi families order again and again."
+          subtitle="Favourites pahadi families order again and again."
           tag="bestseller"
           limit={5}
           seeAllHref={`${ROUTES.SHOP}?tag=bestseller`}
-          seeAllLabel="View all"
         />
 
         {/* What’s hot */}
@@ -86,17 +85,16 @@ const Home = () => {
           tag="trending"
           limit={5}
           seeAllHref={`${ROUTES.SHOP}?tag=trending`}
-          seeAllLabel="View all"
         />
 
         {/* Brand trust */}
         <section className="home-section why-section" id="why">
           <div className="container">
             <div className="why-section__intro">
-              <p className="section-eyebrow">The PahadLink difference</p>
-              <h2>Why PahadLink is unique &amp; better</h2>
+              <p className="section-eyebrow">Why PahadLink</p>
+              <h2>Better goods from the hills</h2>
               <p className="why-section__lead">
-                Not a generic marketplace — a direct link between Himalayan homes and your doorstep.
+                A direct link between Himalayan makers and your doorstep - not a generic marketplace.
               </p>
             </div>
             <div className="why-grid">
@@ -138,7 +136,6 @@ const Home = () => {
           tag="handpicked"
           limit={5}
           seeAllHref={`${ROUTES.SHOP}?tag=handpicked`}
-          seeAllLabel="View all"
         />
 
         {/* 8. Social proof */}
@@ -146,8 +143,8 @@ const Home = () => {
           <div className="container">
             <div className="section-head section-head--row reviews-head">
               <div>
-                <h2>Loved by pahadi food lovers</h2>
-                <p>Real orders. Honest feedback from customers across India.</p>
+                <h2>Loved across India</h2>
+                <p>Real orders and honest feedback from pahadi food lovers.</p>
               </div>
               <div className="reviews-score" aria-label="Average rating 4.8 out of 5">
                 <strong>4.8</strong>
@@ -191,7 +188,11 @@ const Home = () => {
           </div>
         </section>
 
-        <FaqSection page="home" title="Questions shoppers ask" />
+        <FaqSection
+          page="home"
+          title="Questions shoppers ask"
+          subtitle="Quick answers before you place your first order."
+        />
       </main>
       <Footer />
     </>
