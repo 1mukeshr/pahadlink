@@ -1,12 +1,16 @@
+import { setRuntimeFirebaseConfig } from '../lib/firebase'
+
 /**
  * Resolve API base URL + optional Firebase web config for browser calls.
  * Priority:
  * - localhost → /api (Vite proxy); Firebase from VITE_* env
  * - runtime-config.json (GitHub Pages; can update without rebuild)
  * - VITE_* (build-time)
+ *
+ * Firebase config is stored on globalThis (not a shared module binding) so
+ * Vite/Rolldown minification cannot collide the getter with React internals.
  */
 let runtimeApiUrl = ''
-let runtimeFirebase = null
 
 const isLocalHost = () => {
   if (typeof window === 'undefined') return false
@@ -18,11 +22,17 @@ function pickFirebase(data) {
   const src = data.firebase && typeof data.firebase === 'object' ? data.firebase : data
   const apiKey = String(src.apiKey || src.VITE_FIREBASE_API_KEY || '').trim()
   const appId = String(src.appId || src.VITE_FIREBASE_APP_ID || '').trim()
-  if (!apiKey || !appId) return null
+  const authDomain = String(
+    src.authDomain || src.VITE_FIREBASE_AUTH_DOMAIN || '',
+  ).trim()
+  const projectId = String(
+    src.projectId || src.VITE_FIREBASE_PROJECT_ID || '',
+  ).trim()
+  if (!apiKey || !appId || !authDomain || !projectId) return null
   return {
     apiKey,
-    authDomain: String(src.authDomain || src.VITE_FIREBASE_AUTH_DOMAIN || '').trim(),
-    projectId: String(src.projectId || src.VITE_FIREBASE_PROJECT_ID || '').trim(),
+    authDomain,
+    projectId,
     storageBucket: String(
       src.storageBucket || src.VITE_FIREBASE_STORAGE_BUCKET || '',
     ).trim(),
@@ -41,7 +51,7 @@ export async function loadRuntimeConfig() {
   // Local Vite always uses the proxy - skip remote runtime URLs
   if (isLocalHost()) {
     runtimeApiUrl = ''
-    runtimeFirebase = null
+    setRuntimeFirebaseConfig(null)
     return
   }
   try {
@@ -53,7 +63,7 @@ export async function loadRuntimeConfig() {
     if (typeof data?.apiUrl === 'string' && data.apiUrl.trim()) {
       runtimeApiUrl = data.apiUrl.trim().replace(/\/$/, '')
     }
-    runtimeFirebase = pickFirebase(data)
+    setRuntimeFirebaseConfig(pickFirebase(data))
   } catch {
     // optional file
   }
@@ -78,7 +88,8 @@ function detectApiBase() {
 export const getApiBaseUrl = () => detectApiBase()
 
 export function getRuntimeFirebaseConfig() {
-  return runtimeFirebase
+  if (typeof globalThis === 'undefined') return null
+  return globalThis.__PAHADLINK_FIREBASE__ || null
 }
 
 export const API_BASE_URL = (
