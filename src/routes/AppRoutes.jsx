@@ -27,6 +27,8 @@ const AccountPage = lazy(() =>
 const OrdersPage = lazy(() =>
   import('../pages/account/AccountPages').then((m) => ({ default: m.OrdersPage }))
 )
+const AdminPage = lazy(() => import('../admin/AdminPage'))
+const SellerPage = lazy(() => import('../admin/SellerPage'))
 const Contact = lazy(() => import('../pages/Contact'))
 const PrivacyPage = lazy(() =>
   import('../pages/legal/LegalPage').then((m) => ({ default: m.PrivacyPage }))
@@ -72,6 +74,22 @@ export default function AppRoutes() {
             element={
               <ProtectedRoute>
                 <OrdersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/seller"
+            element={
+              <ProtectedRoute roles={['seller', 'admin']}>
+                <SellerPage />
               </ProtectedRoute>
             }
           />

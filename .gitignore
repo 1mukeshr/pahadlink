@@ -16,6 +16,7 @@ dist-ssr
 
 # Local / hosted file DB fallback
 .data
+server/data/inventory.json
 
 # Editor directories and files
 .vscode/*

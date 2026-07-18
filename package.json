@@ -17,6 +17,7 @@
     "server": "node server/index.js",
     "start:api": "node server/index.js",
     "seed:admin": "node server/scripts/seedAdmin.js",
+    "seed:seller": "node server/scripts/seedSeller.js",
     "seed:crm": "node server/scripts/seedAdminCrm.js",
     "test:auth": "node scripts/test-auth.mjs"
   },

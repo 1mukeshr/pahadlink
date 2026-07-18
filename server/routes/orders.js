@@ -2,7 +2,9 @@ import { Router } from 'express'
 import Order, {
   ORDER_STATUSES,
   PAYMENT_STATUSES,
+  STATUS_TRANSITIONS,
   buildOrderNumber,
+  canTransition,
 } from '../models/Order.js'
 import { protect, authorize, optionalProtect } from '../middleware/auth.js'
 import {
@@ -14,14 +16,31 @@ import {
   buildOrderTotals,
   normalizeCouponCode,
 } from '../services/coupons.js'
+import {
+  decrementStock,
+  restoreStock,
+  getInventorySnapshot,
+} from '../services/inventory.js'
 
 const router = Router()
 
 const PAYMENT_METHODS = ['cod', 'upi', 'card']
 
+const SELLER_STATUSES = ['confirmed', 'processing', 'shipped', 'delivered', 'return_requested']
+
 function fireAndForget(promise) {
   Promise.resolve(promise).catch((err) => {
     console.error('[orders] notification error:', err.message)
+  })
+}
+
+function pushTimeline(order, status, note, by) {
+  if (!Array.isArray(order.timeline)) order.timeline = []
+  order.timeline.push({
+    status,
+    note: note || '',
+    by: by || 'system',
+    at: new Date(),
   })
 }
 
@@ -32,13 +51,41 @@ async function isFirstOrderEmail(email) {
   return prior === 0
 }
 
-/** Admin: list all orders */
-router.get('/', protect, authorize('admin'), async (req, res) => {
+function ensureStockForConfirm(order) {
+  if (order.stockDeducted) return { ok: true }
+  const result = decrementStock(order.items)
+  if (!result.ok) return result
+  order.stockDeducted = true
+  return { ok: true }
+}
+
+/** Customer: my orders */
+router.get('/mine', protect, async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id
+    const email = String(req.user.email || '').trim().toLowerCase()
+    const filter = {
+      $or: [{ user: userId }, ...(email ? [{ customerEmail: email }] : [])],
+    }
+    const orders = await Order.find(filter).sort({ createdAt: -1 }).limit(100)
+    res.json({ orders: orders.map((o) => o.toSafeJSON()) })
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to load orders' })
+  }
+})
+
+/** Admin + Seller: list orders */
+router.get('/', protect, authorize('admin', 'seller'), async (req, res) => {
   try {
     const { status, q } = req.query
     const filter = {}
 
-    if (status && ORDER_STATUSES.includes(status)) {
+    if (req.user.role === 'seller') {
+      filter.status = { $in: SELLER_STATUSES }
+      if (status && SELLER_STATUSES.includes(status)) {
+        filter.status = status
+      }
+    } else if (status && ORDER_STATUSES.includes(status)) {
       filter.status = status
     }
 
@@ -49,6 +96,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
         { customerName: new RegExp(text, 'i') },
         { customerEmail: new RegExp(text, 'i') },
         { customerPhone: new RegExp(text, 'i') },
+        { trackingNumber: new RegExp(text, 'i') },
       ]
     }
 
@@ -60,18 +108,26 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
 })
 
 /** Admin: order stats */
-router.get('/stats', protect, authorize('admin'), async (_req, res) => {
+router.get('/stats', protect, authorize('admin', 'seller'), async (req, res) => {
   try {
-    const [total, pending, confirmed, shipped, delivered, cancelled, revenue] =
+    const base =
+      req.user.role === 'seller' ? { status: { $in: SELLER_STATUSES } } : {}
+
+    const [total, pending, confirmed, processing, shipped, delivered, cancelled, returns, revenue] =
       await Promise.all([
-        Order.countDocuments(),
-        Order.countDocuments({ status: 'pending' }),
-        Order.countDocuments({ status: 'confirmed' }),
-        Order.countDocuments({ status: 'shipped' }),
-        Order.countDocuments({ status: 'delivered' }),
-        Order.countDocuments({ status: 'cancelled' }),
+        Order.countDocuments(base),
+        Order.countDocuments({ ...base, status: 'pending' }),
+        Order.countDocuments({ ...base, status: 'confirmed' }),
+        Order.countDocuments({ ...base, status: 'processing' }),
+        Order.countDocuments({ ...base, status: 'shipped' }),
+        Order.countDocuments({ ...base, status: 'delivered' }),
+        Order.countDocuments({ ...base, status: 'cancelled' }),
+        Order.countDocuments({
+          ...base,
+          status: { $in: ['return_requested', 'returned'] },
+        }),
         Order.aggregate([
-          { $match: { paymentStatus: 'paid' } },
+          { $match: { paymentStatus: 'paid', ...(req.user.role === 'seller' ? base : {}) } },
           { $group: { _id: null, total: { $sum: '$totalAmount' } } },
         ]),
       ])
@@ -80,9 +136,11 @@ router.get('/stats', protect, authorize('admin'), async (_req, res) => {
       total,
       pending,
       confirmed,
+      processing,
       shipped,
       delivered,
       cancelled,
+      returns,
       revenue: revenue[0]?.total || 0,
     })
   } catch (error) {
@@ -90,12 +148,17 @@ router.get('/stats', protect, authorize('admin'), async (_req, res) => {
   }
 })
 
+/** Admin: inventory snapshot */
+router.get('/inventory', protect, authorize('admin'), (_req, res) => {
+  try {
+    res.json({ items: getInventorySnapshot() })
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to load inventory' })
+  }
+})
+
 /**
  * Create order (guest or logged-in).
- * PahadLink-style emails:
- * 1) Always: customer order confirmation
- * 2) Online (upi/card): treat as paid → admin new paid order + customer payment success
- * 3) COD: stays pending until admin marks paid
  */
 router.post('/', optionalProtect, async (req, res) => {
   try {
@@ -119,7 +182,9 @@ router.post('/', optionalProtect, async (req, res) => {
     }
 
     const cleanItems = items.map((item) => ({
+      productId: String(item.productId || item.id || '').trim(),
       name: String(item.name || '').trim(),
+      size: String(item.size || item.unitSize || '').trim(),
       quantity: Number(item.quantity ?? item.qty) || 1,
       price: Number(item.price) || 0,
     }))
@@ -169,6 +234,18 @@ router.post('/', optionalProtect, async (req, res) => {
       nextStatus = 'confirmed'
     }
 
+    let stockDeducted = false
+    if (nextStatus === 'confirmed' || nextStatus === 'processing') {
+      const stock = decrementStock(cleanItems)
+      if (!stock.ok) {
+        return res.status(409).json({
+          message: stock.message || 'Insufficient stock',
+          shortages: stock.shortages,
+        })
+      }
+      stockDeducted = true
+    }
+
     const order = await Order.create({
       orderNumber: buildOrderNumber(),
       user: req.user?._id || req.user?.id || null,
@@ -186,12 +263,19 @@ router.post('/', optionalProtect, async (req, res) => {
       paymentMethod: method,
       status: nextStatus,
       paymentStatus: nextPaymentStatus,
+      stockDeducted,
+      timeline: [
+        {
+          status: nextStatus,
+          note: 'Order placed',
+          by: req.user?.email || email,
+          at: new Date(),
+        },
+      ],
     })
 
-    // 1) Customer order confirmation (always)
     fireAndForget(notifyOrderConfirmed(order))
 
-    // 2–4) After successful online payment → admin + customer payment emails
     if (order.paymentStatus === 'paid') {
       fireAndForget(notifyPaymentCompleted(order))
     }
@@ -202,30 +286,185 @@ router.post('/', optionalProtect, async (req, res) => {
   }
 })
 
-/** Admin: update order status / payment */
-router.patch('/:id', protect, authorize('admin'), async (req, res) => {
+/** Customer: request return on delivered order */
+router.post('/:id/return', protect, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+    if (!order) return res.status(404).json({ message: 'Order not found' })
+
+    const userId = String(req.user._id || req.user.id)
+    const email = String(req.user.email || '').toLowerCase()
+    const owns =
+      String(order.user || '') === userId ||
+      order.customerEmail === email
+    if (!owns && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not your order' })
+    }
+
+    if (order.status !== 'delivered') {
+      return res.status(400).json({ message: 'Only delivered orders can be returned' })
+    }
+
+    const reason = String(req.body.reason || '').trim()
+    order.status = 'return_requested'
+    order.returnReason = reason
+    pushTimeline(order, 'return_requested', reason || 'Return requested', email)
+    await order.save()
+
+    res.json({ message: 'Return requested', order: order.toSafeJSON() })
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to request return' })
+  }
+})
+
+/** Customer: leave review on delivered/returned order */
+router.post('/:id/review', protect, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+    if (!order) return res.status(404).json({ message: 'Order not found' })
+
+    const userId = String(req.user._id || req.user.id)
+    const email = String(req.user.email || '').toLowerCase()
+    const owns =
+      String(order.user || '') === userId ||
+      order.customerEmail === email
+    if (!owns) {
+      return res.status(403).json({ message: 'Not your order' })
+    }
+
+    if (!['delivered', 'returned'].includes(order.status)) {
+      return res.status(400).json({ message: 'Review after delivery only' })
+    }
+
+    const rating = Number(req.body.rating)
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Rating must be 1–5' })
+    }
+
+    order.review = {
+      rating,
+      comment: String(req.body.comment || '').trim().slice(0, 500),
+      createdAt: new Date(),
+    }
+    await order.save()
+
+    res.json({ message: 'Review saved', order: order.toSafeJSON() })
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to save review' })
+  }
+})
+
+/** Admin + Seller: update order status / payment / shipping */
+router.patch('/:id', protect, authorize('admin', 'seller'), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
     if (!order) {
       return res.status(404).json({ message: 'Order not found' })
     }
 
-    const { status, paymentStatus, notes } = req.body
-    const wasPaid = order.paymentStatus === 'paid'
+    const role = req.user.role
+    const actor = req.user.email || role
+    const body = req.body || {}
+    const {
+      status,
+      paymentStatus,
+      notes,
+      trackingNumber,
+      courier,
+    } = body
 
-    if (status && ORDER_STATUSES.includes(status)) {
+    const wasPaid = order.paymentStatus === 'paid'
+    const prevStatus = order.status
+
+    if (status) {
+      if (!ORDER_STATUSES.includes(status)) {
+        return res.status(400).json({ message: 'Invalid status' })
+      }
+
+      if (role === 'seller') {
+        const sellerAllowed = ['processing', 'shipped', 'delivered', 'returned']
+        if (!sellerAllowed.includes(status)) {
+          return res.status(403).json({
+            message: 'Sellers can set processing, shipped, delivered, or returned',
+          })
+        }
+        if (!canTransition(order.status, status) && order.status !== status) {
+          // Allow seller jump confirmed → processing/shipped
+          const sellerJump =
+            (order.status === 'confirmed' && ['processing', 'shipped'].includes(status)) ||
+            (order.status === 'processing' && status === 'shipped') ||
+            (order.status === 'shipped' && status === 'delivered') ||
+            (order.status === 'return_requested' && status === 'returned')
+          if (!sellerJump) {
+            return res.status(400).json({
+              message: `Cannot move from ${order.status} to ${status}`,
+              allowed: STATUS_TRANSITIONS[order.status] || [],
+            })
+          }
+        }
+      } else if (status !== order.status && !canTransition(order.status, status)) {
+        // Admin can force any status, but warn via allowed list for invalid jumps
+        // Still allow admin override for ops flexibility
+      }
+
+      if (status === 'confirmed' || status === 'processing') {
+        const stock = ensureStockForConfirm(order)
+        if (!stock.ok) {
+          return res.status(409).json({
+            message: stock.message || 'Insufficient stock',
+            shortages: stock.shortages,
+          })
+        }
+      }
+
+      if (status === 'cancelled' && order.stockDeducted && prevStatus !== 'cancelled') {
+        restoreStock(order.items)
+        order.stockDeducted = false
+      }
+
+      if (status === 'returned' && order.stockDeducted) {
+        restoreStock(order.items)
+        order.stockDeducted = false
+        if (order.paymentStatus === 'paid') {
+          order.paymentStatus = 'refunded'
+        }
+      }
+
       order.status = status
+      if (status !== prevStatus) {
+        pushTimeline(order, status, `Status → ${status}`, actor)
+      }
+
+      if (role === 'seller' && !order.assignedSeller) {
+        order.assignedSeller = req.user._id || req.user.id
+      }
     }
-    if (paymentStatus && PAYMENT_STATUSES.includes(paymentStatus)) {
+
+    if (paymentStatus) {
+      if (role !== 'admin') {
+        return res.status(403).json({ message: 'Only admin can update payment' })
+      }
+      if (!PAYMENT_STATUSES.includes(paymentStatus)) {
+        return res.status(400).json({ message: 'Invalid payment status' })
+      }
       order.paymentStatus = paymentStatus
+      if (!wasPaid && paymentStatus === 'paid') {
+        pushTimeline(order, order.status, 'Payment marked paid', actor)
+      }
     }
-    if (typeof notes === 'string') {
+
+    if (typeof trackingNumber === 'string') {
+      order.trackingNumber = trackingNumber.trim()
+    }
+    if (typeof courier === 'string') {
+      order.courier = courier.trim()
+    }
+    if (typeof notes === 'string' && role === 'admin') {
       order.notes = notes.trim()
     }
 
     await order.save()
 
-    // COD (or any unpaid order) marked paid → admin + customer payment emails
     if (!wasPaid && order.paymentStatus === 'paid') {
       fireAndForget(notifyPaymentCompleted(order))
     }
@@ -239,10 +478,14 @@ router.patch('/:id', protect, authorize('admin'), async (req, res) => {
 /** Admin: delete order */
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const order = await Order.findByIdAndDelete(req.params.id)
+    const order = await Order.findById(req.params.id)
     if (!order) {
       return res.status(404).json({ message: 'Order not found' })
     }
+    if (order.stockDeducted) {
+      restoreStock(order.items)
+    }
+    await order.deleteOne()
     res.json({ message: 'Order deleted' })
   } catch (error) {
     res.status(500).json({ message: error.message || 'Failed to delete order' })

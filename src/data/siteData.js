@@ -781,6 +781,33 @@ export const getProductById = (id) => {
   }
 }
 
+/** Resolve storefront image for cart/order line items (API often has no image URL). */
+export function resolveProductImage(item) {
+  if (!item) return ''
+  if (item.image) return item.image
+
+  const id = String(item.productId || item.id || '').trim()
+  if (id) {
+    const byId = products.find((p) => p.id === id)
+    if (byId?.image) return byId.image
+  }
+
+  const name = String(item.name || '')
+    .trim()
+    .toLowerCase()
+  if (!name) return ''
+
+  const exact = products.find((p) => p.name.toLowerCase() === name)
+  if (exact?.image) return exact.image
+
+  const left = name.split('|')[0].trim()
+  const byPrefix = products.find((p) => {
+    const pLeft = p.name.toLowerCase().split('|')[0].trim()
+    return pLeft === left || name.includes(pLeft) || pLeft.includes(left)
+  })
+  return byPrefix?.image || ''
+}
+
 export const getRelatedProducts = (product, limit = 10) => {
   if (!product) return []
   const sameCategory = products.filter(

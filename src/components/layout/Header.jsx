@@ -21,7 +21,7 @@ import logo from '../../assets/images/logo.png'
 const Header = () => {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, logout, isAdmin, isSeller } = useAuth()
   const { cartCount, wishlistCount, openCart } = useShop()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
@@ -181,6 +181,28 @@ const Header = () => {
                         <PackageIcon size={16} />
                         <span>My orders</span>
                       </Link>
+                      {isAdmin && (
+                        <Link
+                          to={ROUTES.ADMIN}
+                          className="header-account-item"
+                          role="menuitem"
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          <PackageIcon size={16} />
+                          <span>Admin panel</span>
+                        </Link>
+                      )}
+                      {(isSeller || isAdmin) && (
+                        <Link
+                          to={ROUTES.SELLER}
+                          className="header-account-item"
+                          role="menuitem"
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          <PackageIcon size={16} />
+                          <span>Seller desk</span>
+                        </Link>
+                      )}
                       <Link
                         to={ROUTES.WISHLIST}
                         className="header-account-item"

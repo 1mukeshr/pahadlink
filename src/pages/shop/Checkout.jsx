@@ -347,7 +347,7 @@ const Checkout = () => {
       landmark: form.landmark.trim(),
       notes: form.notes.trim(),
       createdAt: new Date().toISOString(),
-      status: 'Placed',
+      status: 'pending',
     }
 
     try {
@@ -367,7 +367,9 @@ const Checkout = () => {
           pincode: placed.pincode,
         },
         items: placed.items.map((item) => ({
+          productId: item.id,
           name: item.name,
+          size: item.size || '',
           quantity: item.qty || 1,
           price: item.price,
         })),
@@ -376,6 +378,7 @@ const Checkout = () => {
       if (apiOrder?.orderNumber) {
         placed.id = apiOrder.orderNumber
         placed.paymentStatus = apiOrder.paymentStatus
+        placed.status = apiOrder.status || placed.status
         placed.apiId = apiOrder.id
         if (typeof apiOrder.totalAmount === 'number') {
           placed.total = apiOrder.totalAmount
