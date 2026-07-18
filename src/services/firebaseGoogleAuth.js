@@ -8,6 +8,9 @@ import { getFirebaseAuth, isFirebaseConfigured } from '../lib/firebase'
 const provider = new GoogleAuthProvider()
 provider.setCustomParameters({ prompt: 'select_account' })
 
+const AUTH_DOMAIN_HELP =
+  'Add 1mukeshr.github.io under Firebase Console → Authentication → Settings → Authorized domains, then try again.'
+
 /**
  * Sign in with Google via Firebase Auth and return the Firebase ID token
  * for backend session exchange.
@@ -35,6 +38,8 @@ export async function signInWithGoogleFirebase() {
     }
   } catch (error) {
     const code = error?.code || ''
+    const raw = String(error?.message || '')
+
     if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
       throw new Error('Google sign-in was cancelled')
     }
@@ -48,12 +53,20 @@ export async function signInWithGoogleFirebase() {
         'Google sign-in is disabled. Enable it in Firebase Console → Authentication → Sign-in method → Google.'
       )
     }
-    if (code === 'auth/unauthorized-domain') {
+    if (
+      code === 'auth/unauthorized-domain' ||
+      /unauthorized.?domain/i.test(raw) ||
+      /domain.*not (authorized|whitelisted)/i.test(raw)
+    ) {
       throw new Error(
-        'This domain is not allowed for Google login. Add it under Firebase Auth → Settings → Authorized domains.'
+        `This site is blocked for Google login. ${AUTH_DOMAIN_HELP}`
       )
     }
-    throw new Error(error?.message || 'Google sign-in failed')
+    // Surface Firebase's own message when it already names the fix
+    if (/authorized domains/i.test(raw)) {
+      throw new Error(`${raw} ${AUTH_DOMAIN_HELP}`)
+    }
+    throw new Error(raw || 'Google sign-in failed')
   }
 }
 

@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
+import { FIREBASE_WEB_CONFIG } from '../config/firebaseWebConfig'
 
 const RUNTIME_KEY = '__PAHADLINK_FIREBASE__'
 
@@ -33,23 +34,22 @@ export function setRuntimeFirebaseConfig(cfg) {
   }
 }
 
+function isComplete(cfg) {
+  return Boolean(cfg?.apiKey && cfg?.authDomain && cfg?.projectId && cfg?.appId)
+}
+
 export function getFirebaseConfig() {
   const fromRuntime = runtimeFirebaseConfig()
-  if (
-    fromRuntime?.apiKey &&
-    fromRuntime?.appId &&
-    fromRuntime?.authDomain &&
-    fromRuntime?.projectId
-  ) {
-    return fromRuntime
-  }
+  if (isComplete(fromRuntime)) return fromRuntime
 
-  return envFirebaseConfig()
+  const fromEnv = envFirebaseConfig()
+  if (isComplete(fromEnv)) return fromEnv
+
+  return { ...FIREBASE_WEB_CONFIG }
 }
 
 export function isFirebaseConfigured() {
-  const cfg = getFirebaseConfig()
-  return Boolean(cfg.apiKey && cfg.authDomain && cfg.projectId && cfg.appId)
+  return isComplete(getFirebaseConfig())
 }
 
 let app
