@@ -1,8 +1,8 @@
 {
-  "apiUrl": "https://pahadlink-api.loca.lt/api",
+  "apiUrl": "https://governing-irc-corps-nextel.trycloudflare.com/api",
   "apiUrls": [
-    "https://pahadlink-api.loca.lt/api",
-    "https://governing-irc-corps-nextel.trycloudflare.com/api"
+    "https://governing-irc-corps-nextel.trycloudflare.com/api",
+    "https://pahadlink-api.loca.lt/api"
   ],
   "firebase": {
     "apiKey": "AIzaSyCa1V4GXz7fpGHQ_0gKNHkW5qQfVnWqeok",
