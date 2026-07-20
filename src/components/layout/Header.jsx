@@ -86,13 +86,13 @@ const Header = () => {
       {showPromo && (
         <div className="header-promo" role="region" aria-label="Site offer">
           <div className="header-promo__inner">
-            <GiftIcon size={15} className="header-promo__gift" />
+            <GiftIcon size={15} className="header-promo__gift" aria-hidden="true" />
             <p className="header-promo__copy">
-              <strong>{PROMO.text}</strong>
+              <strong className="header-promo__title">{PROMO.text}</strong>
               <span className="header-promo__sep" aria-hidden="true">
                 ·
               </span>
-              <span>
+              <span className="header-promo__code">
                 Use code <em>{PROMO.code}</em>
               </span>
               <span className="header-promo__sep header-promo__sep--extra" aria-hidden="true">
