@@ -10,6 +10,7 @@ import {
 } from '../icons'
 import { ROUTES, categoryPath } from '../../config'
 import { categoryGroups } from '../../data/siteData'
+import { useShop } from '../../context/ShopContext'
 import logoLight from '../../assets/images/logo-light.png'
 
 const SOCIAL_LINKS = [
@@ -36,6 +37,7 @@ const SOCIAL_LINKS = [
 ]
 
 const Footer = () => {
+  const { openWishlist } = useShop()
   const year = new Date().getFullYear()
   const topCategories = categoryGroups.slice(0, 5)
 
@@ -89,7 +91,15 @@ const Footer = () => {
               <li><Link to={`${ROUTES.HOME}#faq`}>FAQs</Link></li>
               <li><Link to={ROUTES.REFUNDS}>Shipping & returns</Link></li>
               <li><Link to={ROUTES.ORDERS}>Track order</Link></li>
-              <li><Link to={ROUTES.WISHLIST}>Wishlist</Link></li>
+              <li>
+                <button
+                  type="button"
+                  className="footer-link-button"
+                  onClick={openWishlist}
+                >
+                  Wishlist
+                </button>
+              </li>
               <li><Link to={ROUTES.ACCOUNT}>My account</Link></li>
             </ul>
           </div>

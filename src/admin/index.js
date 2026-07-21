@@ -1,5 +1,7 @@
 export { default as AdminPage } from './AdminPage'
+export { default as LeadsPage } from './LeadsPage'
 export { default as SellerPage } from './SellerPage'
 export { default as AdminLayout } from './AdminLayout'
 export { default as OrdersDesk } from './OrdersDesk'
+export { default as LeadsDesk } from './LeadsDesk'
 export * from './AdminCharts'

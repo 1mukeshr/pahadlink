@@ -22,7 +22,14 @@ const hiddenExact = new Set([
 const MobileBottomNav = () => {
   const { pathname } = useLocation()
   const { user, isAuthenticated, isAdmin, isSeller } = useAuth()
-  const { cartCount, wishlistCount, cartOpen, openCart } = useShop()
+  const {
+    cartCount,
+    wishlistCount,
+    cartOpen,
+    wishlistOpen,
+    openCart,
+    openWishlist,
+  } = useShop()
 
   if (hiddenExact.has(pathname)) return null
 
@@ -132,11 +139,11 @@ const MobileBottomNav = () => {
         <span>Bag</span>
       </button>
 
-      <NavLink
-        to={ROUTES.WISHLIST}
-        className={({ isActive }) =>
-          `mobile-bottom-nav__item${isActive ? ' is-active' : ''}`
-        }
+      <button
+        type="button"
+        className={`mobile-bottom-nav__item${wishlistOpen ? ' is-active' : ''}`}
+        onClick={openWishlist}
+        aria-label={`Wishlist, ${wishlistCount} items`}
       >
         <span className="mobile-bottom-nav__icon-wrap">
           <HeartIcon size={20} />
@@ -147,7 +154,7 @@ const MobileBottomNav = () => {
           )}
         </span>
         <span>Wishlist</span>
-      </NavLink>
+      </button>
 
       <NavLink
         to={accountTo}

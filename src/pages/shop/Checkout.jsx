@@ -46,6 +46,7 @@ import {
 } from '../../data/coupons'
 
 const ORDER_POPUP_MS = 20000
+const COLLAPSED_BAG_ITEM_COUNT = 2
 
 const STATES = INDIA_STATES
 
@@ -56,7 +57,6 @@ const PAYMENTS = [
     short: 'Pay by any UPI app',
     desc: 'Google Pay, PhonePe, Paytm and more.',
     Icon: UpiIcon,
-    body: 'You will complete payment in your UPI app after placing the order. Order confirms once payment succeeds.',
   },
   {
     id: 'card',
@@ -64,7 +64,6 @@ const PAYMENTS = [
     short: 'Add and secure cards as per RBI guidelines',
     desc: 'Visa, Mastercard, RuPay and more.',
     Icon: CardPayIcon,
-    body: 'Pay securely with your card. Card details are never stored on PahadLink.',
   },
   {
     id: 'cod',
@@ -72,7 +71,6 @@ const PAYMENTS = [
     short: 'Pay when your order arrives',
     desc: 'Available for most pincodes.',
     Icon: CodIcon,
-    body: 'Pay cash (or UPI) to the delivery partner when your order reaches you. Keep exact change if possible.',
   },
 ]
 
@@ -212,6 +210,12 @@ const Checkout = () => {
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
+  const [showAllBagItems, setShowAllBagItems] = useState(false)
+
+  const hiddenBagItemCount = Math.max(0, cart.length - COLLAPSED_BAG_ITEM_COUNT)
+  const visibleBagItems = showAllBagItems
+    ? cart
+    : cart.slice(0, COLLAPSED_BAG_ITEM_COUNT)
 
   const refreshSavedAddresses = useCallback(() => {
     setSavedAddresses(listAddresses())
@@ -500,7 +504,7 @@ const Checkout = () => {
       shipping,
       discount,
       couponCode: appliedCoupon?.code || '',
-      itemCount: cart.length,
+      itemCount: cart.reduce((sum, item) => sum + (item.qty || 1), 0),
       items: cart.map((item) => ({
         id: item.id,
         name: item.name,
@@ -787,7 +791,7 @@ const Checkout = () => {
                   </div>
 
                   <ul className="checkout-bag">
-                    {cart.map((item) => (
+                    {visibleBagItems.map((item) => (
                       <li key={item.key} className="checkout-bag__item">
                         <Link
                           to={productPath(item.id)}
@@ -848,6 +852,26 @@ const Checkout = () => {
                       </li>
                     ))}
                   </ul>
+
+                  {hiddenBagItemCount > 0 && (
+                    <button
+                      type="button"
+                      className={`checkout-bag__more${
+                        showAllBagItems ? ' checkout-bag__more--open' : ''
+                      }`}
+                      aria-expanded={showAllBagItems}
+                      onClick={() => setShowAllBagItems((show) => !show)}
+                    >
+                      <span>
+                        {showAllBagItems
+                          ? 'Show less'
+                          : `Show ${hiddenBagItemCount} more item${
+                              hiddenBagItemCount === 1 ? '' : 's'
+                            }`}
+                      </span>
+                      <ChevronDownIcon size={15} />
+                    </button>
+                  )}
                 </section>
 
                 <form
@@ -1179,7 +1203,6 @@ const Checkout = () => {
                               aria-hidden={!active}
                             >
                               <div className="checkout-pay-mode__panel-inner">
-                                <p>{option.body}</p>
                                 <span className="checkout-pay-mode__hint">
                                   {option.desc}
                                 </span>

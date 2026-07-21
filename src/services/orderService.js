@@ -32,32 +32,38 @@ export const STATUS_LABELS = {
 export const DELIVERY_FLOW_STEPS = [
   {
     key: 'pending',
-    label: 'Order Placed',
+    label: 'Placed',
+    shortLabel: 'Placed',
     hint: 'PahadLink received your order',
   },
   {
     key: 'confirmed',
     label: 'Confirmed',
+    shortLabel: 'Confirmed',
     hint: 'Seller confirmed your order',
   },
   {
     key: 'processing',
     label: 'Packed',
-    hint: 'Items packed and ready to ship',
+    shortLabel: 'Packed',
+    hint: 'Packed and ready to ship',
   },
   {
     key: 'shipped',
     label: 'Shipped',
+    shortLabel: 'Shipped',
     hint: 'Package handed to courier',
   },
   {
     key: 'out_for_delivery',
-    label: 'Out for Delivery',
+    label: 'Out',
+    shortLabel: 'Out',
     hint: 'Courier is on the way to you',
   },
   {
     key: 'delivered',
     label: 'Delivered',
+    shortLabel: 'Delivered',
     hint: 'Delivered successfully',
   },
 ]
@@ -169,13 +175,16 @@ export function buildDeliveryActivity(order) {
   for (let i = 0; i <= currentIdx; i += 1) {
     const step = DELIVERY_FLOW_STEPS[i]
     const hit = byStatus.get(step.key)
+    const isCurrent = i === currentIdx
+    // Prefer real timeline timestamps; avoid inventing same createdAt for every step
+    let at = hit?.at || null
+    if (!at && i === 0) at = order.createdAt || null
+    if (!at && isCurrent) at = order.updatedAt || order.createdAt || null
     built.push({
       status: step.key,
       note: hit?.note || step.hint || STATUS_LABELS[step.key],
-      at:
-        hit?.at ||
-        (i === 0 ? order.createdAt : null) ||
-        (i === currentIdx ? order.updatedAt || order.createdAt : order.createdAt),
+      at,
+      isCurrent,
     })
   }
 

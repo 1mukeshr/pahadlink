@@ -19,7 +19,14 @@ const discountPct = (price, compareAt) =>
  * Clean product card - discount, rating, sizes, wishlist, add to bag
  */
 const ProductCard = ({ product, preferredSize }) => {
-  const variants = useMemo(() => getProductVariants(product), [product])
+  const { stockTick, addToCart, toggleWishlist, isInWishlist, getCartQtyForVariant, getCartQtyForProduct } =
+    useShop()
+  const variants = useMemo(
+    () => getProductVariants(product),
+    // stockTick refreshes live inventory overlay
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [product, stockTick]
+  )
   const inStockVariants = useMemo(
     () => variants.filter((v) => v.stock > 0),
     [variants]
@@ -38,8 +45,6 @@ const ProductCard = ({ product, preferredSize }) => {
   const [qty, setQty] = useState(1)
   const [justAdded, setJustAdded] = useState(false)
   const addedTimer = useRef(null)
-  const { addToCart, toggleWishlist, isInWishlist, getCartQtyForVariant, getCartQtyForProduct } =
-    useShop()
 
   const selected = getVariantBySize(product, size)
   const stockInfo = getStockStatus(product, selected.size)
@@ -211,7 +216,7 @@ const ProductCard = ({ product, preferredSize }) => {
             ) : !stockInfo.inStock ? (
               'Out of stock'
             ) : atCustomerLimit ? (
-              `Max ${MAX_QTY_PER_ITEM_PER_CUSTOMER} per customer`
+              `Max ${MAX_QTY_PER_ITEM_PER_CUSTOMER} of this product`
             ) : maxQty <= 0 ? (
               'Max in bag'
             ) : (

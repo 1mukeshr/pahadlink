@@ -18,9 +18,6 @@ const CategoryPage = lazy(() => import('../pages/shop/Category'))
 const ProductDetail = lazy(() => import('../pages/shop/ProductDetail'))
 const Cart = lazy(() => import('../pages/shop/Cart'))
 const Checkout = lazy(() => import('../pages/shop/Checkout'))
-const WishlistPage = lazy(() =>
-  import('../pages/shop/ShopPages').then((m) => ({ default: m.WishlistPage }))
-)
 const AccountPage = lazy(() =>
   import('../pages/account/AccountPages').then((m) => ({ default: m.AccountPage }))
 )
@@ -28,6 +25,7 @@ const OrdersPage = lazy(() =>
   import('../pages/account/AccountPages').then((m) => ({ default: m.OrdersPage }))
 )
 const AdminPage = lazy(() => import('../admin/AdminPage'))
+const LeadsPage = lazy(() => import('../admin/LeadsPage'))
 const SellerPage = lazy(() => import('../admin/SellerPage'))
 const Contact = lazy(() => import('../pages/Contact'))
 const About = lazy(() => import('../pages/About'))
@@ -61,7 +59,6 @@ export default function AppRoutes() {
               </ProtectedRoute>
             }
           />
-          <Route path="/wishlist" element={<WishlistPage />} />
           <Route
             path="/account"
             element={
@@ -83,6 +80,14 @@ export default function AppRoutes() {
             element={
               <ProtectedRoute roles={['admin']}>
                 <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/leads"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <LeadsPage />
               </ProtectedRoute>
             }
           />

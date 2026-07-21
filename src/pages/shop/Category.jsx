@@ -119,18 +119,30 @@ const CategoryPage = () => {
 
             {products.length === 0 ? (
               <div className="category-empty">
-                <h2>No products in this filter yet</h2>
-                <p>Try another type, or browse the full shop for more picks.</p>
+                <span className="category-empty__icon" aria-hidden="true">
+                  <CategoryIcon name={category.id} size={26} />
+                </span>
+                <p className="category-empty__eyebrow">
+                  {typeParam ? `${typeParam} filter` : category.name}
+                </p>
+                <h2>
+                  No {typeParam ? typeParam.toLowerCase() : 'products'} available yet
+                </h2>
+                <p className="category-empty__copy">
+                  We&apos;re adding more authentic hill products soon. Meanwhile,
+                  explore everything available in this category.
+                </p>
                 <div className="category-empty__actions">
                   <button
                     type="button"
-                    className="btn-hero-primary"
+                    className="category-empty__primary"
                     onClick={() => setType('')}
                   >
-                    Show all in {category.name}
+                    Browse all {category.name}
+                    <ArrowRightIcon size={14} />
                   </button>
-                  <Link to={ROUTES.SHOP} className="category-hero__secondary">
-                    View all products
+                  <Link to={ROUTES.SHOP} className="category-empty__secondary">
+                    Explore full shop
                   </Link>
                 </div>
               </div>

@@ -31,7 +31,7 @@ const Header = () => {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, isAuthenticated, logout, isAdmin, isSeller } = useAuth()
-  const { cartCount, wishlistCount, openCart } = useShop()
+  const { cartCount, wishlistCount, openCart, openWishlist } = useShop()
   const [menuOpen, setMenuOpen] = useState(false)
   const [promoOpen, setPromoOpen] = useState(() => {
     try {
@@ -122,8 +122,6 @@ const Header = () => {
               <img src={logo} alt="PahadLink" className="header-logo__img" />
             </Link>
 
-            <span className="header-left-divider" aria-hidden="true" />
-
             {!isAuthPage && <PincodeBox />}
           </div>
 
@@ -166,10 +164,11 @@ const Header = () => {
 
             {!isAuthPage && !isAdmin && !isSeller && (
               <>
-                <Link
-                  to={ROUTES.WISHLIST}
+                <button
+                  type="button"
                   className="header-icon-link"
                   aria-label={`Wishlist, ${wishlistCount} items`}
+                  onClick={openWishlist}
                 >
                   <span className="header-icon-wrap">
                     <HeartIcon size={20} />
@@ -180,7 +179,7 @@ const Header = () => {
                     )}
                   </span>
                   <span className="header-icon-label">Wishlist</span>
-                </Link>
+                </button>
 
                 <span className="header-nav-divider" aria-hidden="true" />
 
@@ -297,15 +296,18 @@ const Header = () => {
                             <PackageIcon size={16} />
                             <span>My orders</span>
                           </Link>
-                          <Link
-                            to={ROUTES.WISHLIST}
+                          <button
+                            type="button"
                             className="header-account-item"
                             role="menuitem"
-                            onClick={() => setMenuOpen(false)}
+                            onClick={() => {
+                              setMenuOpen(false)
+                              openWishlist()
+                            }}
                           >
                             <HeartIcon size={16} />
                             <span>Wishlist</span>
-                          </Link>
+                          </button>
                         </>
                       )}
                       {(isAdmin || isSeller) && (

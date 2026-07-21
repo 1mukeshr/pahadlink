@@ -862,11 +862,11 @@ const Shop = () => {
           aria-labelledby="shop-chips-popup-title"
         >
           <div className="shop-chips-popup__head">
-            <div>
-              <p className="shop-chips-popup__eyebrow">Applied</p>
-              <h2 id="shop-chips-popup-title">
-                {chips.length} filter{chips.length === 1 ? '' : 's'}
-              </h2>
+            <div className="shop-chips-popup__title-wrap">
+              <h2 id="shop-chips-popup-title">Applied filters</h2>
+              <span className="shop-chips-popup__count" aria-live="polite">
+                {chips.length}
+              </span>
             </div>
             <button
               type="button"
@@ -874,50 +874,65 @@ const Shop = () => {
               aria-label="Close"
               onClick={() => setChipsOpen(false)}
             >
-              <CloseIcon size={18} />
+              <CloseIcon size={16} />
             </button>
           </div>
 
-          <ul className="shop-chips-popup__list">
-            {chips.map((chip) => (
-              <li key={chip.key}>
-                <div className="shop-chips-popup__item">
-                  <div className="shop-chips-popup__meta">
-                    <span className="shop-chips-popup__group">{chip.group}</span>
-                    <strong>{chip.label}</strong>
-                  </div>
-                  <button
-                    type="button"
-                    className="shop-chips-popup__remove"
-                    aria-label={`Remove ${chip.label}`}
-                    onClick={() => removeChip(chip.key)}
-                  >
-                    <CloseIcon size={14} />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {chips.length === 0 ? (
+            <div className="shop-chips-popup__empty">
+              <p>No filters applied</p>
+              <button
+                type="button"
+                className="shop-chips-popup__done"
+                onClick={() => setChipsOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          ) : (
+            <>
+              <ul className="shop-chips-popup__list">
+                {chips.map((chip) => (
+                  <li key={chip.key}>
+                    <div className="shop-chips-popup__item">
+                      <div className="shop-chips-popup__meta">
+                        <span className="shop-chips-popup__group">{chip.group}</span>
+                        <strong>{chip.label}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        className="shop-chips-popup__remove"
+                        aria-label={`Remove ${chip.label}`}
+                        onClick={() => removeChip(chip.key)}
+                      >
+                        <CloseIcon size={13} />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
 
-          <div className="shop-chips-popup__foot">
-            <button
-              type="button"
-              className="shop-chips-popup__clear"
-              onClick={() => {
-                clearAll()
-                setChipsOpen(false)
-              }}
-            >
-              Clear all
-            </button>
-            <button
-              type="button"
-              className="shop-chips-popup__done"
-              onClick={() => setChipsOpen(false)}
-            >
-              Done
-            </button>
-          </div>
+              <div className="shop-chips-popup__foot">
+                <button
+                  type="button"
+                  className="shop-chips-popup__clear"
+                  onClick={() => {
+                    clearAll()
+                    setChipsOpen(false)
+                  }}
+                >
+                  Clear all
+                </button>
+                <button
+                  type="button"
+                  className="shop-chips-popup__done"
+                  onClick={() => setChipsOpen(false)}
+                >
+                  Done
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

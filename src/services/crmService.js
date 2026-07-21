@@ -34,7 +34,7 @@ export async function createLead(payload) {
 
 export async function updateLead(id, payload) {
   const { data } = await api.patch(`/crm/leads/${id}`, payload)
-  return data
+  return data.lead || data
 }
 
 export async function deleteLead(id) {

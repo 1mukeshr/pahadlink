@@ -277,15 +277,6 @@ export const OrganicFoodIcon = (props) => (
   </Icon>
 )
 
-export const SpiritualIcon = (props) => (
-  <Icon {...props}>
-    <path d="M12 2.8c1.7 2.6 2.6 4.7 2.6 6.7a2.6 2.6 0 1 1-5.2 0c0-2 0.9-4.1 2.6-6.7z" />
-    <path d="M8.2 21h7.6" />
-    <path d="M9.2 21c0-2.1 1.3-3.5 2.8-4.7 1.5 1.2 2.8 2.6 2.8 4.7" />
-    <path d="M7.5 16.2c1.2-.8 2.7-1.2 4.5-1.2s3.3.4 4.5 1.2" />
-  </Icon>
-)
-
 export const ClothingIcon = (props) => (
   <Icon {...props}>
     <path d="M9.2 4h5.6l2 2.4L20 8.2l-2.4 2.2L15.8 9v11H8.2V9L6.4 10.4 4 8.2l3.2-1.8L9.2 4z" />
@@ -324,50 +315,6 @@ export const GiftIcon = (props) => (
     <path d="M4 14h16" />
     <path d="M12 10v11" />
     <path d="M12 10c-2.1 0-3.4-1.4-3.4-2.8S10.1 4.6 12 6.8c1.9-2.2 3.4-1 3.4.4S14.1 10 12 10z" />
-  </Icon>
-)
-
-export const WaterIcon = (props) => (
-  <Icon {...props}>
-    <path d="M12 3c4 5 7 8.5 7 12a7 7 0 0 1-14 0c0-3.5 3-7 7-12z" />
-  </Icon>
-)
-
-export const PrasadIcon = (props) => (
-  <Icon {...props}>
-    <rect x="5" y="9" width="14" height="10" rx="2" />
-    <path d="M8 9V7a4 4 0 0 1 8 0v2" />
-    <path d="M12 13v3" />
-    <path d="M9 15h6" />
-  </Icon>
-)
-
-export const BeadIcon = (props) => (
-  <Icon {...props}>
-    <circle cx="8" cy="12" r="2.5" />
-    <circle cx="12" cy="12" r="2.5" />
-    <circle cx="16" cy="12" r="2.5" />
-    <path d="M5.5 12h13" />
-  </Icon>
-)
-
-export const PujaIcon = (props) => (
-  <Icon {...props}>
-    <path d="M12 4v4" />
-    <path d="M8 8h8" />
-    <path d="M10 8v10" />
-    <path d="M14 8v10" />
-    <path d="M7 18h10" />
-    <path d="M9 12h6" />
-  </Icon>
-)
-
-export const IncenseIcon = (props) => (
-  <Icon {...props}>
-    <path d="M12 20v-8" />
-    <path d="M10.5 12c0-2 1-3.5 1.5-5.5.5 2 1.5 3.5 1.5 5.5" />
-    <path d="M13.5 12c0-2 1-3.5 1.5-5.5.5 2 1.5 3.5 1.5 5.5" />
-    <path d="M9 20h6" />
   </Icon>
 )
 
@@ -815,7 +762,6 @@ const categoryIcons = {
   handmade: BasketIcon,
   'organic-food': OrganicFoodIcon,
   'honey-natural': HoneyIcon,
-  spiritual: SpiritualIcon,
   clothing: ClothingIcon,
   handicrafts: HandicraftIcon,
   'snacks-sweets': SweetsIcon,
@@ -836,12 +782,6 @@ const subcategoryIcons = {
   jar: JarIcon,
   spice: SpiceIcon,
   leaf: LeafIcon,
-  water: WaterIcon,
-  prasad: PrasadIcon,
-  bead: BeadIcon,
-  puja: PujaIcon,
-  incense: IncenseIcon,
-  spiritual: SpiritualIcon,
   hat: HatIcon,
   shawl: ShawlIcon,
   dress: DressIcon,
@@ -862,8 +802,6 @@ const subcategoryIcons = {
 const resolveSubcategoryIcon = (name, categoryId) => {
   const text = name.toLowerCase()
 
-  if (/gangajal/.test(text)) return 'water'
-  if (/prasad|box/.test(text)) return 'prasad'
   if (/honey/.test(text)) return 'honey'
   if (/tea/.test(text)) return 'tea'
   if (/jam|pickle/.test(text)) return 'jar'
@@ -871,9 +809,6 @@ const resolveSubcategoryIcon = (name, categoryId) => {
   if (/rice/.test(text)) return 'rice'
   if (/rajma|gahat|bhatt|dal/.test(text)) return 'dal'
   if (/mandua|jhangora|mil/.test(text)) return 'grain'
-  if (/bead|mala/.test(text)) return 'bead'
-  if (/puja/.test(text)) return 'puja'
-  if (/incense/.test(text)) return 'incense'
   if (/topi/.test(text)) return 'hat'
   if (/shawl/.test(text)) return 'shawl'
   if (/dress/.test(text)) return 'dress'
@@ -882,14 +817,13 @@ const resolveSubcategoryIcon = (name, categoryId) => {
   if (/bamboo|ringaal/.test(text)) return 'bamboo'
   if (/copper/.test(text)) return 'copper'
   if (/handmade|handcraft/.test(text)) return 'handmade'
-  if (/mithai|singori|sweet/.test(text)) return 'sweet'
+  if (/mithai|sweet/.test(text)) return 'sweet'
   if (/snack|rus/.test(text)) return 'snack'
   if (/hamper|gift/.test(text)) return 'gift'
 
   const categoryFallback = {
     'organic-food': 'grain',
     'honey-natural': 'honey',
-    spiritual: 'spiritual',
     clothing: 'clothing',
     handicrafts: 'handicraft',
     'snacks-sweets': 'sweet',

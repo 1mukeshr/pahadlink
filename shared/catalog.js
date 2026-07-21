@@ -16,8 +16,6 @@ export const PRODUCT_PRICING = [
   { id: 'pahadi-topi', name: 'Pahadi Topi | Traditional Wool Cap', price: 449, sizes: ['Free size'] },
   { id: 'ringaal-basket', name: 'Ringaal Bamboo Basket | Handcrafted', price: 599, sizes: ['Medium', 'Large'] },
   { id: 'jhangora', name: 'Jhangora | Barnyard Millet', price: 169, sizes: ['500g', '1 kg'] },
-  { id: 'singori', name: 'Singori | Leaf-Wrapped Kumaoni Sweet', price: 349, sizes: ['6 pcs', '12 pcs'] },
-  { id: 'gangajal', name: 'Gangajal | Sacred Water from the Himalayas', price: 149, sizes: ['250ml', '500ml', '1 L'] },
   { id: 'festival-hamper', name: 'Festival Hamper | Honey, Sweets & Grains', price: 1299, sizes: ['Standard', 'Premium'] },
   { id: 'organic-gift-box', name: 'Organic Gift Box | Clean Pahadi Essentials', price: 899, sizes: ['Box of 4', 'Box of 6'] },
 ]

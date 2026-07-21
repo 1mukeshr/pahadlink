@@ -16,6 +16,7 @@ import {
 import { ROUTES, categoryPath, MAX_QTY_PER_ITEM_PER_CUSTOMER } from '../../config'
 import {
   getProductById,
+  getProductVariants,
   getRelatedProducts,
   getStockStatus,
   getVariantBySize,
@@ -186,8 +187,11 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (!product) return
+    const variants = getProductVariants(product)
     const firstInStock =
-      product.variants?.find((v) => v.stock > 0)?.size || product.sizes?.[0]
+      variants.find((v) => v.stock > 0)?.size ||
+      variants[0]?.size ||
+      product.sizes?.[0]
     setSize(firstInStock || '')
     setQty(1)
     setActiveImage(0)
@@ -256,7 +260,7 @@ const ProductDetail = () => {
     return <Navigate to={ROUTES.SHOP} replace />
   }
 
-  const variants = product.variants || []
+  const variants = getProductVariants(product)
   const selected = getVariantBySize(product, size)
   const stockInfo = getStockStatus(product, selected.size)
   const inCartQty = getCartQtyForVariant?.(product.id, selected.size) || 0
@@ -530,7 +534,7 @@ const ProductDetail = () => {
                   ) : !stockInfo.inStock ? (
                     'Out of stock'
                   ) : atCustomerLimit ? (
-                    `Max ${MAX_QTY_PER_ITEM_PER_CUSTOMER} per customer`
+                    `Max ${MAX_QTY_PER_ITEM_PER_CUSTOMER} of this product`
                   ) : maxQty <= 0 ? (
                     'Max in bag'
                   ) : (

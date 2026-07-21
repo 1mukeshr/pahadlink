@@ -8,7 +8,7 @@ import Order, {
   buildOrderNumber,
   canTransition,
 } from '../models/Order.js'
-import { protect, authorize, optionalProtect } from '../middleware/auth.js'
+import { protect, authorize } from '../middleware/auth.js'
 import {
   notifyOrderConfirmed,
   notifyPaymentCompleted,
@@ -242,9 +242,9 @@ router.get('/inventory', protect, authorize('admin'), (_req, res) => {
 })
 
 /**
- * Create order (guest or logged-in).
+ * Create order (logged-in customers).
  */
-router.post('/', requireMongo, optionalProtect, async (req, res) => {
+router.post('/', requireMongo, protect, async (req, res) => {
   try {
     const {
       customerName,
@@ -265,13 +265,33 @@ router.post('/', requireMongo, optionalProtect, async (req, res) => {
       })
     }
 
+    const addr = shippingAddress && typeof shippingAddress === 'object'
+      ? shippingAddress
+      : {}
+    const line1 = String(addr.line1 || addr.address || '').trim()
+    const city = String(addr.city || '').trim()
+    const state = String(addr.state || '').trim()
+    const pincode = String(addr.pincode || '').trim()
+    const phone = String(customerPhone || '').trim()
+    if (!line1 || !city || !state || !/^\d{6}$/.test(pincode)) {
+      return res.status(400).json({
+        message: 'Complete shipping address is required (address, city, state, 6-digit pincode)',
+      })
+    }
+    if (!phone || phone.replace(/\D/g, '').length < 10) {
+      return res.status(400).json({
+        message: 'A valid phone number is required',
+      })
+    }
+    const cleanAddress = { line1, city, state, pincode }
+
     const priced = priceOrderItems(items)
     if (!priced.ok) {
       return res.status(400).json({ message: priced.message || 'Invalid order items' })
     }
     const cleanItems = priced.items
 
-    // Cap: max 3 of each product per customer (this order + past non-cancelled)
+    // Cap: max 3 of each product per order (unlimited different products)
     const qtyByProduct = new Map()
     for (const line of cleanItems) {
       const id = String(line.productId || '').trim()
@@ -290,44 +310,6 @@ router.post('/', requireMongo, optionalProtect, async (req, res) => {
     }
 
     const email = String(customerEmail).trim().toLowerCase()
-    const priorRows = await Order.aggregate([
-      {
-        $match: {
-          customerEmail: email,
-          status: { $nin: ['cancelled'] },
-        },
-      },
-      { $unwind: '$items' },
-      {
-        $match: {
-          'items.productId': { $in: [...qtyByProduct.keys()] },
-        },
-      },
-      {
-        $group: {
-          _id: '$items.productId',
-          qty: { $sum: '$items.quantity' },
-        },
-      },
-    ])
-    const priorByProduct = new Map(
-      priorRows.map((row) => [String(row._id), Number(row.qty) || 0])
-    )
-    for (const [productId, qty] of qtyByProduct) {
-      const prior = priorByProduct.get(productId) || 0
-      if (prior + qty > MAX_QTY_PER_ITEM_PER_CUSTOMER) {
-        const left = Math.max(0, MAX_QTY_PER_ITEM_PER_CUSTOMER - prior)
-        return res.status(400).json({
-          message: left
-            ? `Only ${left} more unit(s) allowed for this product (max ${MAX_QTY_PER_ITEM_PER_CUSTOMER} per customer)`
-            : `Limit reached: max ${MAX_QTY_PER_ITEM_PER_CUSTOMER} of this product per customer`,
-          productId,
-          max: MAX_QTY_PER_ITEM_PER_CUSTOMER,
-          alreadyPurchased: prior,
-          requested: qty,
-        })
-      }
-    }
 
     // Reject if any line is out of stock
     const shortages = []
@@ -414,7 +396,7 @@ router.post('/', requireMongo, optionalProtect, async (req, res) => {
             discountAmount: totals.discountAmount,
             couponCode: totals.couponCode,
             totalAmount: totals.totalAmount,
-            shippingAddress: shippingAddress || {},
+            shippingAddress: cleanAddress,
             notes: String(notes || '').trim(),
             paymentMethod: method,
             status: nextStatus,

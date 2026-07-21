@@ -45,6 +45,7 @@ export function ShopProvider({ children }) {
     withCapitalizedNames(readStore(STORAGE.WISHLIST, []))
   )
   const [cartOpen, setCartOpen] = useState(false)
+  const [wishlistOpen, setWishlistOpen] = useState(false)
   const [stockTick, setStockTick] = useState(0)
 
   useEffect(() => {
@@ -63,6 +64,36 @@ export function ShopProvider({ children }) {
     }
   }, [])
 
+  // After live stock loads, clamp cart qty / drop OOS lines
+  useEffect(() => {
+    if (!stockTick) return
+    setCart((prev) => {
+      let changed = false
+      const next = []
+      for (const item of prev) {
+        const product = getProductById(item.id)
+        if (!product) {
+          changed = true
+          continue
+        }
+        const stock = getVariantStock(product, item.size)
+        if (stock <= 0) {
+          changed = true
+          continue
+        }
+        const maxAllowed = Math.min(stock, MAX_QTY_PER_ITEM_PER_CUSTOMER)
+        const qty = Math.min(item.qty || 1, maxAllowed)
+        if (qty !== item.qty || item.maxStock !== maxAllowed) {
+          changed = true
+          next.push({ ...item, qty, maxStock: maxAllowed })
+        } else {
+          next.push(item)
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [stockTick])
+
   useEffect(() => {
     localStorage.setItem(STORAGE.CART, JSON.stringify(cart))
   }, [cart])
@@ -72,7 +103,7 @@ export function ShopProvider({ children }) {
   }, [wishlist])
 
   useEffect(() => {
-    if (!cartOpen) return undefined
+    if (!cartOpen && !wishlistOpen) return undefined
 
     const body = document.body
     const prevOverflow = body.style.overflow
@@ -81,7 +112,10 @@ export function ShopProvider({ children }) {
     body.style.overflow = 'hidden'
 
     const onKey = (e) => {
-      if (e.key === 'Escape') setCartOpen(false)
+      if (e.key === 'Escape') {
+        setCartOpen(false)
+        setWishlistOpen(false)
+      }
     }
     document.addEventListener('keydown', onKey)
 
@@ -89,7 +123,7 @@ export function ShopProvider({ children }) {
       body.style.overflow = prevOverflow
       document.removeEventListener('keydown', onKey)
     }
-  }, [cartOpen])
+  }, [cartOpen, wishlistOpen])
 
   const cartCount = useMemo(
     () => cart.reduce((sum, item) => sum + (item.qty || 1), 0),
@@ -103,9 +137,17 @@ export function ShopProvider({ children }) {
 
   const wishlistCount = wishlist.length
 
-  const openCart = useCallback(() => setCartOpen(true), [])
+  const openCart = useCallback(() => {
+    setWishlistOpen(false)
+    setCartOpen(true)
+  }, [])
   const closeCart = useCallback(() => setCartOpen(false), [])
   const toggleCart = useCallback(() => setCartOpen((o) => !o), [])
+  const openWishlist = useCallback(() => {
+    setCartOpen(false)
+    setWishlistOpen(true)
+  }, [])
+  const closeWishlist = useCallback(() => setWishlistOpen(false), [])
 
   const addToCart = useCallback(
     (product, { size, qty = 1, open = true, price } = {}) => {
@@ -260,9 +302,12 @@ export function ShopProvider({ children }) {
       cartTotal,
       wishlistCount,
       cartOpen,
+      wishlistOpen,
       openCart,
       closeCart,
       toggleCart,
+      openWishlist,
+      closeWishlist,
       addToCart,
       updateCartQty,
       getCartQtyForVariant,
@@ -280,9 +325,12 @@ export function ShopProvider({ children }) {
       cartTotal,
       wishlistCount,
       cartOpen,
+      wishlistOpen,
       openCart,
       closeCart,
       toggleCart,
+      openWishlist,
+      closeWishlist,
       addToCart,
       updateCartQty,
       getCartQtyForVariant,

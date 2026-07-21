@@ -13,7 +13,7 @@ const SEARCH_PHRASES = [
   'honey, rajma, shawls and more',
   'pahadi rajma from the hills',
   'raw forest honey',
-  'bal mithai & singori',
+  'bal mithai',
   'woolen shawls & topi',
   'organic millets & dals',
 ]

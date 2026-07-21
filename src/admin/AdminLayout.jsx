@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Link, useNavigate } from 'react-router-dom'
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom'
 import { ROUTES } from '../config'
 import { useAuth } from '../context/AuthContext'
 import logo from '../assets/images/logo.png'
@@ -21,13 +21,14 @@ function initialsFrom(name, email) {
 export default function AdminLayout({ children, mode = 'admin' }) {
   const { user, logout, isAdmin } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
 
   const portalLabel =
     mode === 'admin'
       ? 'Admin portal'
       : isAdmin
-        ? 'Admin · Fulfilment'
+        ? 'Admin · Sellers'
         : 'Seller portal'
 
   const roleLabel =
@@ -39,7 +40,7 @@ export default function AdminLayout({ children, mode = 'admin' }) {
       mode === 'admin'
         ? 'PahadLink Admin'
         : isAdmin
-          ? 'PahadLink Admin · Fulfilment'
+          ? 'PahadLink Admin · Sellers'
           : 'PahadLink Seller'
 
     const iconLinks = [
@@ -67,7 +68,7 @@ export default function AdminLayout({ children, mode = 'admin' }) {
 
   useEffect(() => {
     setNavOpen(false)
-  }, [mode])
+  }, [mode, location.pathname])
 
   const onLogout = () => {
     logout()
@@ -137,6 +138,40 @@ export default function AdminLayout({ children, mode = 'admin' }) {
                 Dashboard
               </NavLink>
             )}
+            {isAdmin && (
+              <NavLink
+                to={ROUTES.ADMIN_LEADS}
+                className={({ isActive }) =>
+                  `admin-nav__link${isActive ? ' is-active' : ''}`
+                }
+                onClick={() => setNavOpen(false)}
+              >
+                <span className="admin-nav__ico" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                    <path
+                      d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx="9"
+                      cy="7"
+                      r="3.5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M22 21v-2a3.5 3.5 0 0 0-2.5-3.35M16.5 3.7a3.5 3.5 0 0 1 0 6.6"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                Leads
+              </NavLink>
+            )}
             <NavLink
               to={ROUTES.SELLER}
               className={({ isActive }) =>
@@ -158,7 +193,7 @@ export default function AdminLayout({ children, mode = 'admin' }) {
                   />
                 </svg>
               </span>
-              Fulfilment
+              Sellers
             </NavLink>
           </nav>
 

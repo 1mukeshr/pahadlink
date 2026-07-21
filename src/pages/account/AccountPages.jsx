@@ -4,6 +4,7 @@ import Breadcrumb from '../../components/layout/Breadcrumb'
 import Footer from '../../components/layout/Footer'
 import {
   ArrowRightIcon,
+  CheckIcon,
   CloseIcon,
   LogOutIcon,
   MailIcon,
@@ -14,19 +15,12 @@ import {
 import { ROUTES, ROLES } from '../../config'
 import { useAuth } from '../../context/AuthContext'
 import { resolveProductImage } from '../../data/siteData'
-import { getOrdersForUser, saveOrder, syncOrdersForUser } from '../../utils/ordersStorage'
+import { getOrdersForUser, syncOrdersForUser } from '../../utils/ordersStorage'
 import {
   fetchMyOrders,
-  mapApiOrderToUi,
-  requestReturn,
   STATUS_LABELS,
-  DELIVERY_FLOW_STEPS,
-  DELIVERY_FLOW_INDEX,
-  deliveryHeadline,
-  deliveryHint,
   paymentStatusLabel,
   buildDeliveryActivity,
-  submitReview,
 } from '../../services/orderService'
 
 const statusClass = (status) => {
@@ -239,11 +233,6 @@ export const OrdersPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeOrderId, setActiveOrderId] = useState(null)
-  const [returnReason, setReturnReason] = useState('')
-  const [reviewRating, setReviewRating] = useState(5)
-  const [reviewComment, setReviewComment] = useState('')
-  const [actionMsg, setActionMsg] = useState('')
-  const [busy, setBusy] = useState(false)
   const [syncedAt, setSyncedAt] = useState(null)
 
   const loadOrders = useCallback(async ({ silent = false } = {}) => {
@@ -328,54 +317,10 @@ export const OrdersPage = () => {
 
   const openOrderPopup = (orderId) => {
     setActiveOrderId(orderId)
-    setActionMsg('')
-    setReturnReason('')
-    setReviewComment('')
-    setReviewRating(5)
   }
 
-  const closeOrderPopup = () => setActiveOrderId(null)
-
-  const onReturn = async () => {
-    if (!activeOrder?.apiId) return
-    setBusy(true)
-    setActionMsg('')
-    try {
-      const data = await requestReturn(activeOrder.apiId, returnReason)
-      const mapped = mapApiOrderToUi(data.order)
-      setOrders((prev) =>
-        prev.map((o) => (o.apiId === mapped.apiId ? mapped : o))
-      )
-      saveOrder(mapped)
-      setActionMsg('Return requested')
-      setActiveOrderId(mapped.id)
-    } catch (err) {
-      setActionMsg(err.message || 'Return failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const onReview = async () => {
-    if (!activeOrder?.apiId) return
-    setBusy(true)
-    setActionMsg('')
-    try {
-      const data = await submitReview(activeOrder.apiId, {
-        rating: reviewRating,
-        comment: reviewComment,
-      })
-      const mapped = mapApiOrderToUi(data.order)
-      setOrders((prev) =>
-        prev.map((o) => (o.apiId === mapped.apiId ? mapped : o))
-      )
-      saveOrder(mapped)
-      setActionMsg('Thanks for your review')
-    } catch (err) {
-      setActionMsg(err.message || 'Review failed')
-    } finally {
-      setBusy(false)
-    }
+  const closeOrderPopup = () => {
+    setActiveOrderId(null)
   }
 
   return (
@@ -424,7 +369,7 @@ export const OrdersPage = () => {
 
             {error && (
               <p className="orders-sync-note" role="status">
-                {error}. Showing saved orders on this device.
+                {error}
               </p>
             )}
 
@@ -585,139 +530,115 @@ export const OrdersPage = () => {
                 aria-label="Close"
                 onClick={closeOrderPopup}
               >
-                <CloseIcon size={16} />
+                <CloseIcon size={24} />
               </button>
             </header>
 
-            {activeOrder.status !== 'cancelled' && (
-              <section
-                className="orders-track"
-                aria-label="PahadLink delivery tracking"
-              >
-                <div className="orders-track__banner">
-                  <p className="orders-track__brand">PahadLink delivery</p>
-                  <strong className="orders-track__headline">
-                    {deliveryHeadline(activeOrder.status)}
-                  </strong>
-                  <em className="orders-track__hint">
-                    {deliveryHint(activeOrder.status)}
-                  </em>
-                </div>
-
-                <ol
-                  className="orders-detail-popup__steps orders-track__steps"
-                  aria-label="Order progress"
-                >
-                  {DELIVERY_FLOW_STEPS.map((step, idx) => {
-                    const current =
-                      DELIVERY_FLOW_INDEX[activeOrder.status] ?? 0
-                    const done = current > idx
-                    const active = current === idx
+            <div className="orders-detail-popup__content">
+              <div className="orders-detail-popup__tracking-column">
+                <p className="orders-detail-popup__section-label">Items</p>
+                <ul className="orders-detail-popup__items">
+                  {activeItems.map((item, idx) => {
+                    const img = resolveItemImage(item)
                     return (
-                      <li
-                        key={step.key}
-                        className={`orders-detail-popup__step${
-                          done ? ' is-done' : ''
-                        }${active ? ' is-active' : ''}`}
-                        title={step.hint}
-                      >
-                        <span className="orders-detail-popup__step-dot" />
-                        <span className="orders-detail-popup__step-label">
-                          {step.label}
-                        </span>
+                      <li key={`${activeOrder.id}-popup-${item.id || idx}`}>
+                        <div>
+                          <strong>{item.name}</strong>
+                          <span>
+                            {item.size ? `${item.size} · ` : ''}
+                            Qty {item.qty || 1}
+                          </span>
+                          <em className="orders-detail-popup__item-price">
+                            {formatPrice(item.price * (item.qty || 1))}
+                          </em>
+                        </div>
+                        {img ? (
+                          <img
+                            src={img}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <span className="orders-detail-popup__fallback">
+                            <PackageIcon size={18} />
+                          </span>
+                        )}
                       </li>
                     )
                   })}
-                </ol>
+                </ul>
 
-                <ol className="orders-track__timeline" aria-label="Activity">
-                  {activity
-                    .slice()
-                    .reverse()
-                    .map((ev, idx) => (
-                      <li
-                        key={`${ev.status}-${ev.at || idx}`}
-                        className={idx === 0 ? 'is-latest' : ''}
-                      >
-                        <span className="orders-track__timeline-dot" />
-                        <div>
-                          <strong>
-                            {STATUS_LABELS[ev.status] || ev.note}
-                          </strong>
-                          <em>{ev.note}</em>
-                          <time dateTime={ev.at || undefined}>
-                            {formatDateTime(ev.at)}
-                          </time>
-                        </div>
-                      </li>
-                    ))}
-                </ol>
-              </section>
-            )}
+                {activeOrder.status !== 'cancelled' && (
+                  <section
+                    className="orders-track"
+                    aria-label="PahadLink delivery tracking"
+                  >
+                    <ol
+                      className="orders-track__timeline"
+                      aria-label="Order updates"
+                    >
+                      {activity.map((ev, idx) => {
+                        const title =
+                          STATUS_LABELS[ev.status] || ev.note || 'Update'
+                        const note = String(ev.note || '').trim()
+                        const showNote =
+                          note &&
+                          note.toLowerCase() !== title.toLowerCase()
+                        const isLast = idx === activity.length - 1
+                        return (
+                          <li
+                            key={`${ev.status}-${ev.at || idx}`}
+                            className={`${isLast ? 'is-latest' : 'is-past'}${
+                              ev.isCurrent || isLast ? ' is-current' : ''
+                            }`}
+                          >
+                            <span className="orders-track__timeline-dot">
+                              <CheckIcon size={10} aria-hidden="true" />
+                            </span>
+                            <div>
+                              <strong>{title}</strong>
+                              {showNote ? <em>{note}</em> : null}
+                              {ev.at ? (
+                                <time dateTime={ev.at}>
+                                  {formatDateTime(ev.at)}
+                                </time>
+                              ) : null}
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ol>
+                  </section>
+                )}
 
-            {activeOrder.status === 'cancelled' && (
-              <div className="orders-track__banner is-cancelled">
-                <p className="orders-track__brand">PahadLink delivery</p>
-                <strong className="orders-track__headline">
-                  Order cancelled
-                </strong>
+                {activeOrder.status === 'cancelled' && (
+                  <div className="orders-track__banner is-cancelled">
+                    <p className="orders-track__brand">PahadLink delivery</p>
+                    <strong className="orders-track__headline">
+                      Order cancelled
+                    </strong>
+                  </div>
+                )}
+
+                {(activeOrder.trackingNumber || activeOrder.courier) && (
+                  <div className="orders-detail-popup__track-card">
+                    <TruckIcon size={16} />
+                    <div>
+                      <span>Shipment · PahadLink</span>
+                      <strong>
+                        {activeOrder.courier || 'Courier'}
+                        {activeOrder.trackingNumber
+                          ? ` · ${activeOrder.trackingNumber}`
+                          : ''}
+                      </strong>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
 
-            {(activeOrder.trackingNumber || activeOrder.courier) && (
-              <div className="orders-detail-popup__track-card">
-                <TruckIcon size={16} />
-                <div>
-                  <span>Shipment · PahadLink</span>
-                  <strong>
-                    {activeOrder.courier || 'Courier'}
-                    {activeOrder.trackingNumber
-                      ? ` · ${activeOrder.trackingNumber}`
-                      : ''}
-                  </strong>
-                </div>
-              </div>
-            )}
-
-            <div className="orders-detail-popup__body">
-              <p className="orders-detail-popup__section-label">Items</p>
-              <ul className="orders-detail-popup__items">
-                {activeItems.map((item, idx) => {
-                  const img = resolveItemImage(item)
-                  return (
-                    <li key={`${activeOrder.id}-popup-${item.id || idx}`}>
-                      {img ? (
-                        <img
-                          src={img}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <span className="orders-detail-popup__fallback">
-                          <PackageIcon size={18} />
-                        </span>
-                      )}
-                      <div>
-                        <strong>{item.name}</strong>
-                        <span>
-                          {item.size ? `${item.size} · ` : ''}
-                          Qty {item.qty || 1}
-                        </span>
-                      </div>
-                      <em>{formatPrice(item.price * (item.qty || 1))}</em>
-                    </li>
-                  )
-                })}
-              </ul>
-
-              <div className="orders-detail-popup__info-grid">
-                <div className="orders-detail-popup__info-card">
-                  <span>Payment</span>
-                  <strong>{paymentLabel(activeOrder.payment)}</strong>
-                  <em>{paymentStatusLabel(activeOrder)}</em>
-                </div>
-                <div className="orders-detail-popup__info-card">
+              <div className="orders-detail-popup__body">
+                <div className="orders-detail-popup__info-card orders-detail-popup__info-card--address">
                   <span>Deliver to</span>
                   <strong>
                     {activeOrder.city || '—'}
@@ -726,127 +647,71 @@ export const OrdersPage = () => {
                   <em>
                     {[activeOrder.address, activeOrder.pincode]
                       .filter(Boolean)
-                      .join(' · ') || `${activeItemCount} item${activeItemCount === 1 ? '' : 's'}`}
+                      .join(' · ') ||
+                      `${activeItemCount} item${activeItemCount === 1 ? '' : 's'}`}
                   </em>
                 </div>
-              </div>
 
-              <div className="orders-detail-popup__totals">
-                <div>
-                  <span>Subtotal</span>
-                  <strong>
-                    {formatPrice(
-                      itemsSubtotal(activeItems) ||
-                        Number(activeOrder.total || 0) -
-                          Number(activeOrder.shipping || 0) +
-                          Number(activeOrder.discount || 0)
-                    )}
-                  </strong>
+                <div className="orders-detail-popup__info-card">
+                  <span>Payment</span>
+                  <strong>{paymentLabel(activeOrder.payment)}</strong>
+                  <em>{paymentStatusLabel(activeOrder)}</em>
                 </div>
-                <div>
-                  <span>Shipping</span>
-                  <strong>
-                    {Number(activeOrder.shipping || 0) === 0
-                      ? 'Free'
-                      : formatPrice(activeOrder.shipping)}
-                  </strong>
-                </div>
-                {Number(activeOrder.discount || 0) > 0 && (
-                  <div className="is-discount">
+
+                <p className="orders-detail-popup__section-label">
+                  Price details
+                </p>
+                <div className="orders-detail-popup__totals">
+                  <div>
+                    <span>Subtotal</span>
+                    <strong>
+                      {formatPrice(
+                        itemsSubtotal(activeItems) ||
+                          Number(activeOrder.total || 0) -
+                            Number(activeOrder.shipping || 0) +
+                            Number(activeOrder.discount || 0)
+                      )}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Shipping</span>
+                    <strong>
+                      {Number(activeOrder.shipping || 0) === 0
+                        ? 'Free'
+                        : formatPrice(activeOrder.shipping)}
+                    </strong>
+                  </div>
+                  {Number(activeOrder.discount || 0) > 0 && (
+                    <div className="is-discount">
+                      <span>
+                        Discount
+                        {activeOrder.couponCode
+                          ? ` (${activeOrder.couponCode})`
+                          : ''}
+                      </span>
+                      <strong>-{formatPrice(activeOrder.discount)}</strong>
+                    </div>
+                  )}
+                  <div className="orders-detail-popup__total">
                     <span>
-                      Discount
-                      {activeOrder.couponCode
-                        ? ` (${activeOrder.couponCode})`
-                        : ''}
+                      {activeOrder.paymentStatus === 'paid' ||
+                      activeOrder.status === 'delivered'
+                        ? 'Total amount'
+                        : 'Order total'}
                     </span>
-                    <strong>-{formatPrice(activeOrder.discount)}</strong>
+                    <strong>{formatPrice(activeOrder.total)}</strong>
                   </div>
-                )}
-                <div className="orders-detail-popup__total">
-                  <span>
-                    {activeOrder.paymentStatus === 'paid' ||
-                    activeOrder.status === 'delivered'
-                      ? 'Total paid'
-                      : 'Order total'}
-                  </span>
-                  <strong>{formatPrice(activeOrder.total)}</strong>
                 </div>
+
+                {activeOrder.review?.rating && (
+                  <p className="orders-detail-popup__review">
+                    Your review: <strong>{activeOrder.review.rating}/5</strong>
+                    {activeOrder.review.comment
+                      ? ` — ${activeOrder.review.comment}`
+                      : ''}
+                  </p>
+                )}
               </div>
-
-              {activeOrder.status === 'delivered' && (
-                <div className="orders-detail-actions">
-                  <label>
-                    Return reason
-                    <input
-                      type="text"
-                      value={returnReason}
-                      onChange={(e) => setReturnReason(e.target.value)}
-                      placeholder="Damaged / wrong item / other"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="btn-hero-primary"
-                    disabled={busy || !activeOrder.apiId}
-                    onClick={onReturn}
-                  >
-                    Request return
-                  </button>
-                </div>
-              )}
-
-              {['delivered', 'returned'].includes(activeOrder.status) &&
-                !activeOrder.review?.rating && (
-                  <div className="orders-detail-actions">
-                    <label>
-                      Rating
-                      <select
-                        value={reviewRating}
-                        onChange={(e) =>
-                          setReviewRating(Number(e.target.value))
-                        }
-                      >
-                        {[5, 4, 3, 2, 1].map((n) => (
-                          <option key={n} value={n}>
-                            {n} star{n === 1 ? '' : 's'}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Review
-                      <input
-                        type="text"
-                        value={reviewComment}
-                        onChange={(e) => setReviewComment(e.target.value)}
-                        placeholder="How was your order?"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      className="btn-hero-primary"
-                      disabled={busy || !activeOrder.apiId}
-                      onClick={onReview}
-                    >
-                      Submit review
-                    </button>
-                  </div>
-                )}
-
-              {activeOrder.review?.rating && (
-                <p className="orders-detail-popup__review">
-                  Your review: <strong>{activeOrder.review.rating}/5</strong>
-                  {activeOrder.review.comment
-                    ? ` — ${activeOrder.review.comment}`
-                    : ''}
-                </p>
-              )}
-
-              {actionMsg && (
-                <p className="orders-sync-note" role="status">
-                  {actionMsg}
-                </p>
-              )}
             </div>
           </div>
         </div>

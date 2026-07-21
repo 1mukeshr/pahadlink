@@ -30,7 +30,6 @@ const ProductReviews = ({ product, onSummaryChange }) => {
     distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
   })
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [guestName, setGuestName] = useState('')
@@ -96,7 +95,6 @@ const ProductReviews = ({ product, onSummaryChange }) => {
       onSummaryChange?.(data.summary)
       setComment('')
       setMessage(data.message || 'Thanks for your review!')
-      setShowForm(false)
     } catch (err) {
       setError(err.message || 'Could not save review')
     } finally {
@@ -114,13 +112,6 @@ const ProductReviews = ({ product, onSummaryChange }) => {
         <div className="product-reviews__panel">
           <header className="product-reviews__head">
             <h2 id="product-reviews-title">Ratings & Reviews</h2>
-            <button
-              type="button"
-              className="product-reviews__rate-btn"
-              onClick={() => setShowForm((open) => !open)}
-            >
-              {showForm ? 'Cancel' : 'Rate Product'}
-            </button>
           </header>
 
           <div className="product-reviews__overview">
@@ -154,8 +145,7 @@ const ProductReviews = ({ product, onSummaryChange }) => {
             </ul>
           </div>
 
-          {showForm && (
-            <form className="product-reviews__form" onSubmit={onSubmit}>
+          <form className="product-reviews__form" onSubmit={onSubmit}>
               <div className="product-reviews__form-row">
                 <span className="product-reviews__form-label">Rate this product</span>
                 <StarPicker
@@ -215,14 +205,7 @@ const ProductReviews = ({ product, onSummaryChange }) => {
                   </Link>
                 )}
               </div>
-            </form>
-          )}
-
-          {message && !showForm && (
-            <p className="product-reviews__success product-reviews__success--inline" role="status">
-              {message}
-            </p>
-          )}
+          </form>
 
           <div className="product-reviews__list">
             {reviews.length === 0 && !loading ? (

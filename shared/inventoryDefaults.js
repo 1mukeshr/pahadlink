@@ -16,8 +16,6 @@ export const STOCK_DEFAULTS = {
   'pahadi-topi': { stock: 0 },
   'ringaal-basket': { stockBySize: { Medium: 7, Large: 0 } },
   jhangora: { stock: 26 },
-  singori: { stock: 20 },
-  gangajal: { stock: 50 },
   'festival-hamper': { stockBySize: { Standard: 9, Premium: 0 } },
   'organic-gift-box': { stockBySize: { 'Box of 4': 12, 'Box of 6': 2 } },
 }

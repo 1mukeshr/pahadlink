@@ -115,7 +115,7 @@ const DANGER_STATUSES = new Set(['cancelled'])
 
 export default function OrdersDesk({ mode = 'admin' }) {
   const isAdmin = mode === 'admin'
-  const title = isAdmin ? 'Operations dashboard' : 'Fulfilment desk'
+  const title = isAdmin ? 'Operations dashboard' : 'Sellers'
   const nextMap = isAdmin ? ADMIN_NEXT : SELLER_NEXT
 
   const [orders, setOrders] = useState([])
@@ -354,7 +354,7 @@ export default function OrdersDesk({ mode = 'admin' }) {
 
   const applyUpdate = async (orderId, payload) => {
     if (DANGER_STATUSES.has(payload.status)) {
-      const ok = window.confirm('Cancel this order? This cannot be undone from the queue.')
+      const ok = window.confirm('Cancel this order? This cannot be undone.')
       if (!ok) return
     }
     setBusyId(orderId)
@@ -584,8 +584,12 @@ export default function OrdersDesk({ mode = 'admin' }) {
       <section className="admin-orders-section">
         <header className="admin-orders-section__head">
           <div>
-            <h2>Orders queue</h2>
-            <p>Search, filter, and move orders through fulfilment</p>
+            <h2>{isAdmin ? 'Orders' : 'Your orders'}</h2>
+            <p>
+              {isAdmin
+                ? 'Search, filter, and update order status'
+                : 'Confirm, pack, and ship customer orders'}
+            </p>
           </div>
           <span className="admin-orders-section__count">
             {loading

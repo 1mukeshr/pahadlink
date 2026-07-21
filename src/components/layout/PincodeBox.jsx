@@ -765,7 +765,7 @@ const PincodeBox = () => {
                             setManual((p) => ({ ...p, tag }))
                           }
                         >
-                          <Icon size={16} className="pincode-manual__chip-icon" />
+                          <Icon size={14} className="pincode-manual__chip-icon" />
                           <span>{tag}</span>
                         </button>
                       )
@@ -774,29 +774,31 @@ const PincodeBox = () => {
                 </div>
 
                 <div className="pincode-manual__fields">
-                  <label className="pincode-float">
-                    <input
-                      value={manual.line1}
-                      onChange={setManualField('line1')}
-                      placeholder=" "
-                      autoFocus
-                      required
-                      autoComplete="address-line1"
-                    />
-                    <span>
-                      Flat / House no / Building name <em>*</em>
-                    </span>
-                  </label>
+                  <div className="pincode-manual__row pincode-manual__row--house">
+                    <label className="pincode-float">
+                      <input
+                        value={manual.line1}
+                        onChange={setManualField('line1')}
+                        placeholder=" "
+                        autoFocus
+                        required
+                        autoComplete="address-line1"
+                      />
+                      <span>
+                        Flat / House / Building <em>*</em>
+                      </span>
+                    </label>
 
-                  <label className="pincode-float">
-                    <input
-                      value={manual.floor}
-                      onChange={setManualField('floor')}
-                      placeholder=" "
-                      autoComplete="off"
-                    />
-                    <span>Floor (optional)</span>
-                  </label>
+                    <label className="pincode-float">
+                      <input
+                        value={manual.floor}
+                        onChange={setManualField('floor')}
+                        placeholder=" "
+                        autoComplete="off"
+                      />
+                      <span>Floor</span>
+                    </label>
+                  </div>
 
                   <label className="pincode-float">
                     <input
@@ -818,7 +820,7 @@ const PincodeBox = () => {
                       placeholder=" "
                       autoComplete="off"
                     />
-                    <span>Nearby landmark (optional)</span>
+                    <span>Nearby landmark</span>
                   </label>
 
                   <div className="pincode-manual__row">
@@ -880,42 +882,40 @@ const PincodeBox = () => {
                     </select>
                     <span>State</span>
                   </label>
-                </div>
 
-                <p className="pincode-manual__details-lead">
-                  Your details for a smooth PahadLink delivery
-                </p>
+                  <p className="pincode-manual__details-lead">Delivery contact</p>
 
-                <div className="pincode-manual__fields">
-                  <label className="pincode-float">
-                    <input
-                      value={manual.name}
-                      onChange={setManualField('name')}
-                      placeholder=" "
-                      required
-                      autoComplete="name"
-                    />
-                    <span>
-                      Your name <em>*</em>
-                    </span>
-                  </label>
+                  <div className="pincode-manual__row">
+                    <label className="pincode-float">
+                      <input
+                        value={manual.name}
+                        onChange={setManualField('name')}
+                        placeholder=" "
+                        required
+                        autoComplete="name"
+                      />
+                      <span>
+                        Your name <em>*</em>
+                      </span>
+                    </label>
 
-                  <label className="pincode-float">
-                    <input
-                      value={manual.phone}
-                      onChange={(e) => {
-                        setManual((p) => ({
-                          ...p,
-                          phone: e.target.value.replace(/\D/g, '').slice(0, 10),
-                        }))
-                        if (manualError) setManualError('')
-                      }}
-                      placeholder=" "
-                      inputMode="tel"
-                      autoComplete="tel"
-                    />
-                    <span>Your phone number (optional)</span>
-                  </label>
+                    <label className="pincode-float">
+                      <input
+                        value={manual.phone}
+                        onChange={(e) => {
+                          setManual((p) => ({
+                            ...p,
+                            phone: e.target.value.replace(/\D/g, '').slice(0, 10),
+                          }))
+                          if (manualError) setManualError('')
+                        }}
+                        placeholder=" "
+                        inputMode="tel"
+                        autoComplete="tel"
+                      />
+                      <span>Phone</span>
+                    </label>
+                  </div>
                 </div>
 
                 {manualError && (

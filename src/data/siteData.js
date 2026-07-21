@@ -7,7 +7,6 @@ import offerFreeShip from '../assets/images/banners/offer-free-ship.png'
 import offerTeaHoney from '../assets/images/banners/offer-tea-honey.png'
 import categoryBannerOrganic from '../assets/images/banners/category-organic-food.png'
 import categoryBannerHoney from '../assets/images/banners/category-honey-natural.png'
-import categoryBannerSpiritual from '../assets/images/banners/category-spiritual.png'
 import categoryBannerClothing from '../assets/images/banners/category-clothing.png'
 import categoryBannerHandicrafts from '../assets/images/banners/category-handicrafts.png'
 import categoryBannerSweets from '../assets/images/banners/category-snacks-sweets.png'
@@ -23,8 +22,6 @@ import packBuranshSquash from '../assets/images/products/pack-buransh-squash.png
 import packPahadiTopi from '../assets/images/products/pack-pahadi-topi.png'
 import packRingaalBasket from '../assets/images/products/pack-ringaal-basket.png'
 import packJhangora from '../assets/images/products/pack-jhangora.png'
-import packSingori from '../assets/images/products/pack-singori.png'
-import packGangajal from '../assets/images/products/pack-gangajal.png'
 import packFestivalHamper from '../assets/images/products/pack-festival-hamper.png'
 import packOrganicGiftBox from '../assets/images/products/pack-organic-gift-box.png'
 import { capitalizeWords } from '../utils/text'
@@ -126,18 +123,6 @@ export const categoryGroups = [
     ],
   },
   {
-    id: 'spiritual',
-    name: 'Spiritual & Puja Items',
-    headline: 'Sacred picks from the Himalaya',
-    blurb: 'Gangajal and puja essentials for home rituals and meaningful gifting.',
-    banner: categoryBannerSpiritual,
-    items: [
-      { name: 'Gangajal', icon: 'water' },
-      { name: 'Puja Kits', icon: 'puja' },
-      { name: 'Incense', icon: 'incense' },
-    ],
-  },
-  {
     id: 'clothing',
     name: 'Pahadi Clothing',
     headline: 'Wear the craft of the hills',
@@ -152,7 +137,7 @@ export const categoryGroups = [
   },
   {
     id: 'handicrafts',
-    name: 'Handicrafts',
+    name: 'Handicrafts & Home Decor',
     headline: 'Handmade by hill artisans',
     blurb: 'Bamboo, wood, and copper craft that brings pahadi making into your home.',
     banner: categoryBannerHandicrafts,
@@ -167,11 +152,10 @@ export const categoryGroups = [
     id: 'snacks-sweets',
     name: 'Traditional Sweets',
     headline: 'Taste of home, made traditional',
-    blurb: 'Bal mithai, singori, and classic hill sweets prepared the way you remember.',
+    blurb: 'Bal mithai and classic hill sweets prepared the way you remember.',
     banner: categoryBannerSweets,
     items: [
       { name: 'Bal Mithai', icon: 'sweet' },
-      { name: 'Singori', icon: 'sweet' },
       { name: 'Rus', icon: 'snack' },
       { name: 'Pahadi Snacks', icon: 'snack' },
     ],
@@ -184,7 +168,6 @@ export const categoryGroups = [
     banner: categoryBannerGifts,
     items: [
       { name: 'Festival Hampers', icon: 'gift' },
-      { name: 'Prasad Boxes', icon: 'prasad' },
       { name: 'Organic Gift Boxes', icon: 'gift' },
     ],
   },
@@ -324,22 +307,6 @@ const PRODUCT_PRESENTATION = {
     tags: ['bestseller', 'trending'],
     categoryId: 'organic-food',
     subcategory: 'Jhangora',
-  },
-  singori: {
-    image: packSingori,
-    compareAt: 499,
-    rating: 4.9,
-    tags: ['trending', 'handpicked'],
-    categoryId: 'snacks-sweets',
-    subcategory: 'Singori',
-  },
-  gangajal: {
-    image: packGangajal,
-    compareAt: 219,
-    rating: 4.8,
-    tags: ['bestseller', 'handpicked'],
-    categoryId: 'spiritual',
-    subcategory: 'Gangajal',
   },
   'festival-hamper': {
     image: packFestivalHamper,

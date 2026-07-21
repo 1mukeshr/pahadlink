@@ -43,8 +43,8 @@ async function api(path, opts) {
 
 async function main() {
   // --- shared domain ---
-  if (PRODUCT_PRICING.length !== 15) bad('catalog.count', PRODUCT_PRICING.length)
-  else ok('catalog.count=15')
+  if (PRODUCT_PRICING.length !== 13) bad('catalog.count', PRODUCT_PRICING.length)
+  else ok('catalog.count=13')
 
   const priced = resolveUnitPrice('pahadi-rajma', '1 kg')
   if (!priced || priced.price !== 479) bad('catalog.price', JSON.stringify(priced))
@@ -90,9 +90,19 @@ async function main() {
   } else ok(`api.health mongo=${health.body.mongo} orders=${health.body.ordersReady}`)
 
   const stock = await api('/orders/stock')
-  if (!stock.ok || !Array.isArray(stock.body.items) || stock.body.items.length !== 15) {
-    bad('api.stock', JSON.stringify(stock.body).slice(0, 120))
-  } else ok('api.stock')
+  const catalogIds = new Set(PRODUCT_PRICING.map((p) => p.id))
+  const stockItems = Array.isArray(stock.body?.items) ? stock.body.items : []
+  const stockOk =
+    stock.ok &&
+    stockItems.length === PRODUCT_PRICING.length &&
+    stockItems.every(
+      (row) =>
+        catalogIds.has(row.productId) &&
+        typeof row.stock === 'number' &&
+        Number.isFinite(row.stock)
+    )
+  if (!stockOk) bad('api.stock', JSON.stringify(stock.body).slice(0, 160))
+  else ok('api.stock')
 
   const coupon = await api('/coupons/validate', {
     method: 'POST',

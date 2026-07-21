@@ -5,7 +5,7 @@ import { MAX_QTY_PER_ITEM_PER_CUSTOMER as SHARED_MAX_QTY } from '@pahadlink/shar
 
 export const APP_NAME = 'PahadLink'
 
-/** Max units of the same product one customer may buy (cart + lifetime orders) */
+/** Max units of the same product one customer may buy in one order */
 export const MAX_QTY_PER_ITEM_PER_CUSTOMER = SHARED_MAX_QTY
 
 export {
@@ -50,10 +50,10 @@ export const ROUTES = {
   SHOP: '/shop',
   CATEGORY: '/category/:id',
   PRODUCT: '/product/:id',
-  WISHLIST: '/wishlist',
   ACCOUNT: '/account',
   ORDERS: '/orders',
   ADMIN: '/admin',
+  ADMIN_LEADS: '/admin/leads',
   SELLER: '/seller',
   CONTACT: '/contact',
   ABOUT: '/about',
@@ -128,7 +128,6 @@ export function postCheckoutLoginState() {
 /** Hide header category bar on these pages */
 export const HIDE_CATEGORY_NAV_PATHS = [
   ROUTES.CHECKOUT,
-  ROUTES.WISHLIST,
   ROUTES.ACCOUNT,
   ROUTES.ADMIN,
   ROUTES.SELLER,

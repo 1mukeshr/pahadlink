@@ -65,10 +65,21 @@ export function getInventorySnapshot() {
   const items = []
   for (const id of ids) {
     const entry = store[id] || DEFAULTS[id] || { stock: 0 }
+    let stock = typeof entry.stock === 'number' ? entry.stock : null
+    const stockBySize =
+      entry.stockBySize && typeof entry.stockBySize === 'object'
+        ? entry.stockBySize
+        : null
+    if (stock == null && stockBySize) {
+      stock = Object.values(stockBySize).reduce(
+        (sum, n) => sum + Math.max(0, Number(n) || 0),
+        0
+      )
+    }
     items.push({
       productId: id,
-      stock: typeof entry.stock === 'number' ? entry.stock : null,
-      stockBySize: entry.stockBySize || null,
+      stock: stock == null ? 0 : stock,
+      stockBySize,
     })
   }
   return items.sort((a, b) => a.productId.localeCompare(b.productId))

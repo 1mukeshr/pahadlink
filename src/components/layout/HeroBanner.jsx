@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRightIcon } from '../icons'
-import { ROUTES, categoryPath, productPath } from '../../config'
+import { categoryPath, productPath } from '../../config'
 import { productBanners } from '../../data/siteData'
 
 /** Large product-related hero banners */
@@ -71,7 +71,7 @@ const HeroBanner = () => {
               <p className="mf-hero__eyebrow">From the hills</p>
               <h2 className="mf-hero__title">{active.title}</h2>
               <p className="mf-hero__text">{active.text}</p>
-              <Link to={ROUTES.SHOP} className="mf-hero__shop-btn">
+              <Link to={active.to} className="mf-hero__shop-btn">
                 <span>Shop now</span>
                 <ArrowRightIcon size={16} />
               </Link>

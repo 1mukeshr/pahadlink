@@ -15,6 +15,7 @@ import { ShopProvider } from './context/ShopContext'
 import {
   Header,
   CartDrawer,
+  WishlistDrawer,
   MobileBottomNav,
   ScrollToTop,
   RouteProgress,
@@ -45,6 +46,7 @@ function StorefrontChrome({ children }) {
       <Header />
       {children}
       <CartDrawer />
+      <WishlistDrawer />
       <MobileBottomNav />
       <ThemePicker />
       <SupportChat />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import FaqSection from '../components/layout/FaqSection'
 import Footer from '../components/layout/Footer'
 import HeroBanner from '../components/layout/HeroBanner'
@@ -9,9 +9,7 @@ import {
   ShieldIcon,
   TruckIcon,
   CheckCircleIcon,
-  MountainIcon,
   HillsIcon,
-  LeafIcon,
   StarRating,
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -19,36 +17,23 @@ import {
 import { ROUTES } from '../config'
 import { features } from '../data/siteData'
 import {
-  ADDRESSES_EVENT,
-  LOCATION_EVENT,
   hasCompleteShippingAddress,
   requestOpenAddressPicker,
 } from '../utils/locationStorage'
-import { useShop } from '../context/ShopContext'
 import { fetchRecentReviews } from '../services/reviewService'
-
-const whyIcons = {
-  leaf: LeafIcon,
-  mountain: MountainIcon,
-  shield: ShieldIcon,
-}
+import pahadiWoman from '../assets/images/banners/hero-pahadi-woman.png'
+import whyPahadLink from '../assets/images/banners/why-pahadlink.png'
 
 const REVIEWS_VISIBLE = 3
 
 /**
  * Home UX flow:
- * Banner → Trust → Best Sellers → Offers → Trending → Why us → Handpicked → Reviews
+ * Banner → Trust → Best Sellers → Offers → Trending → Makers → Handpicked → Why us → Reviews
  */
 const Home = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { openCart, cartCount } = useShop()
-  const [checkoutHint, setCheckoutHint] = useState('')
-  const [addressReady, setAddressReady] = useState(() =>
-    hasCompleteShippingAddress()
-  )
   const [homeReviews, setHomeReviews] = useState([])
-  const [homeSummary, setHomeSummary] = useState({ average: 4.8, count: 0 })
   const [canSlideLeft, setCanSlideLeft] = useState(false)
   const [canSlideRight, setCanSlideRight] = useState(false)
   const reviewsTrackRef = useRef(null)
@@ -58,7 +43,6 @@ const Home = () => {
     fetchRecentReviews(9).then((data) => {
       if (!alive) return
       setHomeReviews(data.reviews)
-      setHomeSummary(data.summary)
     })
     return () => {
       alive = false
@@ -107,24 +91,12 @@ const Home = () => {
   }, [homeReviews.length, updateReviewsScroll])
 
   useEffect(() => {
-    const sync = () => setAddressReady(hasCompleteShippingAddress())
-    window.addEventListener(LOCATION_EVENT, sync)
-    window.addEventListener(ADDRESSES_EVENT, sync)
-    return () => {
-      window.removeEventListener(LOCATION_EVENT, sync)
-      window.removeEventListener(ADDRESSES_EVENT, sync)
-    }
-  }, [])
-
-  useEffect(() => {
     const state = location.state
     if (!state?.needAddress && !state?.resumeCheckout) return undefined
 
     const hint =
       state.checkoutHint ||
       'Add your delivery address, then open your bag to checkout.'
-    setCheckoutHint(hint)
-    setAddressReady(hasCompleteShippingAddress())
 
     if (!hasCompleteShippingAddress()) {
       const t = window.setTimeout(() => {
@@ -141,43 +113,6 @@ const Home = () => {
   return (
     <>
       <main className="home-page">
-        {checkoutHint ? (
-          <div className="home-checkout-banner" role="status">
-            <div className="container home-checkout-banner__inner">
-              <p>{checkoutHint}</p>
-              <div className="home-checkout-banner__actions">
-                {!addressReady ? (
-                  <button
-                    type="button"
-                    className="btn-hero-primary"
-                    onClick={() =>
-                      requestOpenAddressPicker({ message: checkoutHint })
-                    }
-                  >
-                    Add address
-                  </button>
-                ) : null}
-                {cartCount > 0 && addressReady ? (
-                  <button
-                    type="button"
-                    className="btn-hero-primary"
-                    onClick={() => openCart()}
-                  >
-                    Open bag
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="home-checkout-banner__dismiss"
-                  onClick={() => setCheckoutHint('')}
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
         <HeroBanner />
 
         {/* 1. Trust strip */}
@@ -236,48 +171,52 @@ const Home = () => {
           seeAllHref={`${ROUTES.SHOP}?tag=trending`}
         />
 
-        {/* Brand trust */}
-        <section className="home-section why-section" id="why">
-          <div className="container">
-            <div className="why-section__intro">
-              <p className="section-eyebrow">Why PahadLink</p>
-              <h2>Better goods from the hills</h2>
-              <p className="why-section__lead">
-                A direct link between Himalayan makers and your doorstep - not a generic marketplace.
-              </p>
+        <section className="home-maker" aria-labelledby="home-maker-title">
+          <div className="container home-maker__inner">
+            <div className="home-maker__media">
+              <img
+                src={pahadiWoman}
+                alt="Pahadi woman artisan with natural products in a Himalayan village"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
-            <div className="why-grid">
-              {features.map((feature, index) => {
-                const Icon = whyIcons[feature.icon] || CheckCircleIcon
-                return (
-                  <article
-                    key={feature.title}
-                    className={`why-card${index === 1 ? ' why-card--featured' : ''}`}
-                  >
-                    <span className="why-card__step" aria-hidden="true">
-                      0{index + 1}
-                    </span>
-                    <div className="why-card__icon">
-                      <Icon size={24} />
-                    </div>
-                    <h3>{feature.title}</h3>
-                    <p>{feature.desc}</p>
-                    <ul className="why-card__points">
-                      {feature.points.map((point) => (
-                        <li key={point}>
-                          <CheckCircleIcon size={15} />
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </article>
-                )
-              })}
+
+            <div className="home-maker__content">
+              <p className="section-eyebrow">From mountain homes</p>
+              <h2 id="home-maker-title">Crafted by hands that know the hills</h2>
+              <p className="home-maker__lead">
+                Meet the farmers and makers behind honest Himalayan food,
+                craft and traditions—brought from their homes to yours.
+              </p>
+              <ul className="home-maker__points">
+                <li>
+                  <CheckCircleIcon size={15} />
+                  <span>Local maker partnerships</span>
+                </li>
+                <li>
+                  <CheckCircleIcon size={15} />
+                  <span>Small-batch traditions</span>
+                </li>
+                <li>
+                  <CheckCircleIcon size={15} />
+                  <span>Delivered across India</span>
+                </li>
+              </ul>
+              <div className="home-maker__actions">
+                <Link to={ROUTES.SHOP} className="home-maker__cta">
+                  Explore hill products
+                  <ArrowRightIcon size={16} />
+                </Link>
+                <Link to={ROUTES.ABOUT} className="home-maker__story-link">
+                  Our story
+                </Link>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* 7. Curated picks */}
+        {/* Curated picks */}
         <ProductSection
           id="handpicked"
           title="Handpicked for you"
@@ -287,29 +226,56 @@ const Home = () => {
           seeAllHref={`${ROUTES.SHOP}?tag=handpicked`}
         />
 
-        {/* 8. Social proof */}
+        {/* Brand trust */}
+        <section className="home-section why-section" id="why">
+          <div className="container why-section__layout">
+            <div className="why-section__visual">
+              <img
+                src={whyPahadLink}
+                alt="Himalayan makers sorting local grains, honey and herbs"
+                loading="lazy"
+                decoding="async"
+              />
+              <div className="why-section__visual-copy">
+                <strong>Rooted in Uttarakhand</strong>
+                <span>Real produce. Real makers. Honest origins.</span>
+              </div>
+            </div>
+
+            <div className="why-section__content">
+              <div className="why-section__intro">
+                <p className="section-eyebrow">Why PahadLink</p>
+                <h2>Better goods from the hills</h2>
+              </div>
+
+              <div className="why-grid">
+                {features.map((feature) => (
+                  <article key={feature.title} className="why-card">
+                    <div className="why-card__body">
+                      <h3>{feature.title}</h3>
+                      <p>{feature.desc}</p>
+                      <ul className="why-card__points">
+                        {feature.points.map((point) => (
+                          <li key={point}>
+                            <CheckCircleIcon size={14} />
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Social proof */}
         <section className="home-section reviews-section" id="reviews">
           <div className="container">
             <div className="section-head section-head--row reviews-head">
               <div>
                 <h2>Loved across India</h2>
-                <p>Real orders and honest feedback from pahadi food lovers.</p>
-              </div>
-              <div className="reviews-head__aside">
-                <div
-                  className="reviews-score"
-                  aria-label={`Average rating ${homeSummary.average} out of 5`}
-                >
-                  <strong>{(homeSummary.average || 0).toFixed(1)}</strong>
-                  <div>
-                    <StarRating rating={homeSummary.average || 0} />
-                    <span>
-                      {homeSummary.count > 0
-                        ? `Based on ${homeSummary.count}+ ratings`
-                        : 'Based on verified orders'}
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
 

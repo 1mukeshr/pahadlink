@@ -56,7 +56,7 @@ const MILESTONES = [
 const RANGE = [
   'Pahadi rajma, gahat dal, mandua & jhangora',
   'Raw forest honey and herbal hill teas',
-  'Bal mithai, singori and festival sweets',
+  'Bal mithai and festival sweets',
   'Ringaal crafts, pahadi topi and gift hampers',
 ]
 

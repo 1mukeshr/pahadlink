@@ -1,4 +1,4 @@
-﻿import { memo, useEffect, useRef } from 'react'
+﻿import { memo, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
@@ -7,10 +7,17 @@ import {
   hasCompleteShippingAddress,
   requestOpenAddressPicker,
 } from '../../utils/locationStorage'
-import { CartIcon, CloseIcon, TruckIcon, ArrowRightIcon } from '../icons'
+import {
+  CartIcon,
+  CloseIcon,
+  TruckIcon,
+  ArrowRightIcon,
+  DropdownIcon,
+} from '../icons'
 import { FREE_SHIP_AT, calcShipping } from '../../data/coupons'
 
 const formatPrice = (n) => `₹${n.toLocaleString('en-IN')}`
+const COLLAPSED_ITEM_COUNT = 4
 
 /**
  * Right-side bag drawer - primary bag UX (no full bag page needed)
@@ -29,11 +36,14 @@ const CartDrawer = () => {
   } = useShop()
   const panelRef = useRef(null)
   const wasOpen = useRef(false)
+  const [showAllItems, setShowAllItems] = useState(false)
 
   const shipping = cart.length === 0 ? 0 : calcShipping(cartTotal)
   const payable = cartTotal + shipping
   const shipLeft = Math.max(0, FREE_SHIP_AT - cartTotal)
   const shipProgress = Math.min(100, Math.round((cartTotal / FREE_SHIP_AT) * 100))
+  const hiddenItemCount = Math.max(0, cart.length - COLLAPSED_ITEM_COUNT)
+  const visibleItems = showAllItems ? cart : cart.slice(0, COLLAPSED_ITEM_COUNT)
 
   const goCheckout = () => {
     closeCart()
@@ -56,6 +66,7 @@ const CartDrawer = () => {
   useEffect(() => {
     if (cartOpen && !wasOpen.current && panelRef.current) {
       panelRef.current.focus({ preventScroll: true })
+      setShowAllItems(false)
     }
     wasOpen.current = cartOpen
   }, [cartOpen])
@@ -136,9 +147,10 @@ const CartDrawer = () => {
               </button>
             </div>
           ) : (
-            <ul className="bag-drawer__list">
-              {cart.map((item) => (
-                <li key={item.key} className="bag-drawer__item">
+            <div className="bag-drawer__items">
+              <ul className="bag-drawer__list">
+                {visibleItems.map((item) => (
+                  <li key={item.key} className="bag-drawer__item">
                   <Link
                     to={productPath(item.id)}
                     className="bag-drawer__thumb"
@@ -199,9 +211,30 @@ const CartDrawer = () => {
                       </span>
                     </div>
                   </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+
+              {hiddenItemCount > 0 && (
+                <button
+                  type="button"
+                  className={`bag-drawer__more${
+                    showAllItems ? ' bag-drawer__more--open' : ''
+                  }`}
+                  aria-expanded={showAllItems}
+                  onClick={() => setShowAllItems((show) => !show)}
+                >
+                  <span>
+                    {showAllItems
+                      ? 'Show less'
+                      : `Show ${hiddenItemCount} more item${
+                          hiddenItemCount === 1 ? '' : 's'
+                        }`}
+                  </span>
+                  <DropdownIcon size={14} />
+                </button>
+              )}
+            </div>
           )}
         </div>
 
