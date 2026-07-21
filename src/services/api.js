@@ -1,12 +1,18 @@
 import axios from 'axios'
-import { getApiBaseUrl, STORAGE } from '../config'
+import {
+  getApiBaseUrl,
+  isHostedStaticApp,
+  isLocalAppHost,
+  STORAGE,
+} from '../config'
 
-const onGithubPages =
-  typeof window !== 'undefined' && /\.github\.io$/i.test(window.location.hostname)
+const hosted = typeof window !== 'undefined' && isHostedStaticApp()
+const local = typeof window !== 'undefined' && isLocalAppHost()
 
 const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
-  timeout: onGithubPages ? 60000 : 20000,
+  // Free hosts (Render) can take ~30–50s to wake after sleep
+  timeout: hosted ? 60000 : 20000,
 })
 
 api.interceptors.request.use((config) => {
@@ -14,14 +20,12 @@ api.interceptors.request.use((config) => {
   if (!baseURL) {
     return Promise.reject(
       new Error(
-        'API URL is not configured. Set VITE_API_URL or public/runtime-config.json apiUrl.'
+        'API URL is not configured. Set public/runtime-config.json apiUrl (or VITE_API_URL) and redeploy.'
       )
     )
   }
   config.baseURL = baseURL
   config.headers = config.headers || {}
-  // localtunnel interstitial bypass when using *.loca.lt hosts
-  config.headers['Bypass-Tunnel-Reminder'] = 'true'
 
   const token =
     localStorage.getItem(STORAGE.TOKEN) || sessionStorage.getItem(STORAGE.TOKEN)
@@ -37,17 +41,28 @@ api.interceptors.response.use(
     let message = 'Something went wrong'
     const status = error.response?.status
     const apiHost = getApiBaseUrl()
+
     if (error.message && !error.response && error.message.includes('API URL is not configured')) {
       message = error.message
     } else if (!error.response) {
-      message = onGithubPages
-        ? `Cannot reach PahadLink API (${apiHost || 'not set'}). Keep the API + tunnel running on your PC, or deploy the API on Render and update runtime-config.json.`
-        : 'Cannot reach server. Start API with: npm run server'
+      if (local) {
+        message =
+          'Cannot reach local API. Keep MongoDB on and run: npm start (or npm run server).'
+      } else if (hosted) {
+        message = `Cannot reach PahadLink API (${apiHost || 'not set'}). Deploy the API (e.g. Render) and set public/runtime-config.json apiUrl.`
+      } else {
+        message = 'Cannot reach server. Start API with: npm run server'
+      }
     } else if (status === 502 || status === 503 || status === 504) {
-      message = onGithubPages
-        ? 'API is waking up or offline. Wait ~30s and try again (free hosts sleep).'
-        : 'API not running. Keep MongoDB on and run: npm run server'
-    } else if (status === 405 && onGithubPages) {
+      if (local) {
+        message = 'Local API not ready. Keep MongoDB on and run: npm run server'
+      } else if (hosted) {
+        message =
+          'API is waking up or offline. Wait ~30s and try again (free hosts sleep).'
+      } else {
+        message = 'API not running. Keep MongoDB on and run: npm run server'
+      }
+    } else if (status === 405 && hosted) {
       message =
         'API URL missing in this build. Set public/runtime-config.json apiUrl (or VITE_API_URL) and redeploy.'
     } else if (error.response.data?.message) {

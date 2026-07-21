@@ -1,9 +1,7 @@
 {
   "apiUrl": "https://pahadlink-api.onrender.com/api",
   "apiUrls": [
-    "https://pahadlink-api.onrender.com/api",
-    "https://governing-irc-corps-nextel.trycloudflare.com/api",
-    "https://pahadlink-api.loca.lt/api"
+    "https://pahadlink-api.onrender.com/api"
   ],
   "firebase": {
     "apiKey": "AIzaSyCa1V4GXz7fpGHQ_0gKNHkW5qQfVnWqeok",

@@ -24,12 +24,39 @@ try {
   existing = {}
 }
 
-const fromFileApi =
-  typeof existing.apiUrl === 'string'
-    ? existing.apiUrl.trim().replace(/\/$/, '')
-    : ''
-const fromEnvApi = (process.env.VITE_API_URL || '').trim().replace(/\/$/, '')
-const apiUrl = fromFileApi || fromEnvApi
+function normalizeApiUrl(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\/$/, '')
+}
+
+function isEphemeralTunnelUrl(url) {
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return (
+      host.endsWith('.trycloudflare.com') ||
+      host.endsWith('.loca.lt') ||
+      host.endsWith('.ngrok-free.app') ||
+      host.endsWith('.ngrok.io') ||
+      host.endsWith('.ngrok.app')
+    )
+  } catch {
+    return false
+  }
+}
+
+const fromFileApi = normalizeApiUrl(existing.apiUrl)
+const fromEnvApi = normalizeApiUrl(process.env.VITE_API_URL)
+const rawApiUrl = fromFileApi || fromEnvApi
+const apiUrl =
+  rawApiUrl && !isEphemeralTunnelUrl(rawApiUrl) ? rawApiUrl : ''
+
+const apiUrls = Array.isArray(existing.apiUrls)
+  ? existing.apiUrls
+      .map(normalizeApiUrl)
+      .filter((u) => u && !isEphemeralTunnelUrl(u))
+  : []
+if (apiUrl && !apiUrls.includes(apiUrl)) apiUrls.unshift(apiUrl)
 
 const envFirebase = {
   apiKey: (process.env.VITE_FIREBASE_API_KEY || '').trim(),
@@ -55,6 +82,8 @@ const firebase =
 
 const next = { ...existing }
 if (apiUrl) next.apiUrl = apiUrl
+if (apiUrls.length) next.apiUrls = apiUrls
+else delete next.apiUrls
 if (firebase?.apiKey && firebase?.appId) next.firebase = firebase
 
 writeFileSync(runtimeConfig, `${JSON.stringify(next, null, 2)}\n`)

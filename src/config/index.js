@@ -10,6 +10,9 @@ export {
   API_BASE_URL,
   getApiBaseUrl,
   getRuntimeFirebaseConfig,
+  isHostedStaticApp,
+  isLocalAppHost,
+  isLocalOrLanHost,
   loadRuntimeConfig,
 } from './api'
 
