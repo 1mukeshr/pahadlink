@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import Order from '../models/Order.js'
 import { applyCoupon, normalizeCouponCode } from '../services/coupons.js'
 import { optionalProtect } from '../middleware/auth.js'
@@ -15,7 +16,7 @@ router.post('/validate', optionalProtect, async (req, res) => {
       .toLowerCase()
 
     let isFirstOrder = true
-    if (email) {
+    if (email && mongoose.connection.readyState === 1) {
       const prior = await Order.countDocuments({ customerEmail: email })
       isFirstOrder = prior === 0
     }

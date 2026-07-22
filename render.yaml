@@ -2,11 +2,10 @@
 # Or: Render → New → Blueprint → connect this repo
 #
 # Required env on Render:
-#   MONGODB_URI = mongodb+srv://USER:PASS@CLUSTER.mongodb.net/Pahadi_link?retryWrites=true&w=majority
+#   MONGODB_URI = mongodb+srv://USER:PASS@pahadlink.wkkq5n2.mongodb.net/?appName=pahadlink
 #   ADMIN_PASSWORD = (your admin password)
 #
-# After deploy, copy the service URL and set GitHub Actions secret:
-#   VITE_API_URL = https://YOUR-SERVICE.onrender.com/api
+# After deploy, copy the service URL and keep public/runtime-config.json apiUrl in sync.
 services:
   - type: web
     name: pahadlink-api
@@ -20,19 +19,21 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Optional Atlas URI. If omitted / unreachable, API uses file DB fallback.
+      # Atlas URI is a Render secret — never commit real credentials.
       - key: MONGODB_URI
         sync: false
+      - key: MONGODB_DB
+        value: Pahadi_link
       - key: USE_FILE_DB
-        value: "true"
+        value: "false"
       - key: ALLOW_FILE_DB_FALLBACK
-        value: "true"
+        value: "false"
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        value: https://1mukeshr.github.io
+        value: https://1mukeshr.github.io/pahadlink
       - key: ADMIN_EMAIL
         value: admin@pahadlink.com
       - key: ADMIN_USERNAME

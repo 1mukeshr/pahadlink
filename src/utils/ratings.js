@@ -45,14 +45,6 @@ function readLocalStore() {
   }
 }
 
-function writeLocalStore(store) {
-  try {
-    localStorage.setItem(STORAGE.REVIEWS, JSON.stringify(store))
-  } catch {
-    // ignore quota
-  }
-}
-
 function getLocalReviews(productId) {
   const store = readLocalStore()
   const list = store[productId]

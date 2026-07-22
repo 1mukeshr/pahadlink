@@ -33,38 +33,7 @@ function readFirebaseToken() {
   return { accessToken: raw?.tokens?.access_token, refreshToken: raw?.tokens?.refresh_token, raw }
 }
 
-async function getAccessToken() {
-  // Prefer firebase CLI's print-access-token when available
-  try {
-    const out = execFileSync(
-      'npx',
-      ['--yes', 'firebase-tools@latest', 'login:ci', '--no-localhost'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 5000 },
-    )
-    if (out.trim()) return out.trim()
-  } catch {
-    // fall through
-  }
-
-  const cfg = readFirebaseToken()
-  if (cfg.accessToken) return cfg.accessToken
-  throw new Error(
-    'No access token. Run interactively: npx firebase-tools login\nThen re-run this script.',
-  )
-}
-
 async function main() {
-  let accessToken
-  try {
-    accessToken = execFileSync(
-      process.platform === 'win32' ? 'npx.cmd' : 'npx',
-      ['--yes', 'firebase-tools@latest', '--token', process.env.FIREBASE_TOKEN || '', 'projects:list', '--json'],
-      { encoding: 'utf8', timeout: 20000 },
-    )
-  } catch {
-    // ignore
-  }
-
   // Use Identity Toolkit admin API with Application Default / gcloud if present
   let token = process.env.FIREBASE_TOKEN || process.env.GOOGLE_ACCESS_TOKEN || ''
   if (!token) {
@@ -73,6 +42,15 @@ async function main() {
         encoding: 'utf8',
         timeout: 15000,
       }).trim()
+    } catch {
+      token = ''
+    }
+  }
+
+  if (!token) {
+    try {
+      const cfg = readFirebaseToken()
+      token = cfg.accessToken || cfg.refreshToken || ''
     } catch {
       token = ''
     }

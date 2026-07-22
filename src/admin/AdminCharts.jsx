@@ -44,7 +44,7 @@ function ChartTip({ tip }) {
   if (!tip) return null
   return (
     <div
-      className="admin-chart__tip"
+      className={`admin-chart__tip admin-chart__tip--${tip.place || 'above'}`}
       style={{ left: tip.x, top: tip.y }}
       role="tooltip"
     >
@@ -55,11 +55,16 @@ function ChartTip({ tip }) {
 
 function tipFromEvent(e, text) {
   const box = e.currentTarget.closest('.admin-chart')
-  if (!box) return { x: 0, y: 0, text }
+  if (!box) return { x: 0, y: 0, text, place: 'above' }
   const rect = box.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  const place = y < 36 ? 'below' : 'above'
+  const edgePad = 10
   return {
-    x: clamp(e.clientX - rect.left + 12, 8, rect.width - 8),
-    y: clamp(e.clientY - rect.top - 36, 4, rect.height - 8),
+    x: clamp(x, edgePad, Math.max(edgePad, rect.width - edgePad)),
+    y: place === 'below' ? y + 12 : y - 8,
+    place,
     text,
   }
 }
@@ -298,7 +303,7 @@ export function OrdersBarChart({ series, period = 'week', height }) {
 }
 
 /** Paid revenue — area chart scaled to period buckets */
-export function RevenueSparkline({ points, series, period = 'week', height = 140 }) {
+export function RevenueSparkline({ points, series, period = 'week', height = 176 }) {
   const [tip, setTip] = useState(null)
   const rows =
     series ||
@@ -313,13 +318,14 @@ export function RevenueSparkline({ points, series, period = 'week', height = 140
 
   const max = Math.max(1, ...rows.map((p) => p.value))
   const hasRevenue = rows.some((p) => p.value > 0)
-  const padL = 8
-  const padR = 8
-  const padTop = 16
-  const padBottom = 26
-  const width = Math.max(320, rows.length * (period === 'month' ? 18 : 28))
+  const padL = 18
+  const padR = 18
+  const padTop = 14
+  const padBottom = 28
+  const width = Math.max(360, rows.length * (period === 'month' ? 22 : period === 'day' ? 30 : 48))
   const chartH = height - padTop - padBottom
   const step = (width - padL - padR) / Math.max(1, rows.length - 1)
+  const gradId = `adminRevFill-${period}-${rows.length}`
 
   const coords = rows.map((p, i) => {
     const x = padL + i * step
@@ -330,7 +336,6 @@ export function RevenueSparkline({ points, series, period = 'week', height = 140
   const line = coords.map((p) => `${p.x},${p.y}`).join(' ')
   const area = `${padL},${padTop + chartH} ${line} ${padL + (rows.length - 1) * step},${padTop + chartH}`
   const peak = coords.reduce((best, p) => (p.value > best.value ? p : best), coords[0])
-  const periodTotal = rows.reduce((s, p) => s + (p.value || 0), 0)
 
   if (!hasRevenue) {
     return <p className="admin-chart__empty">No paid revenue in this period</p>
@@ -343,83 +348,246 @@ export function RevenueSparkline({ points, series, period = 'week', height = 140
     >
       <div className="admin-chart__spark-meta">
         <span>Peak {formatInr(peak.value)}</span>
-        <strong>{formatInr(periodTotal)}</strong>
       </div>
-      <svg
-        width="100%"
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={`Paid revenue · ${period}`}
-      >
-        <defs>
-          <linearGradient id="adminRevFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(10,79,51,0.22)" />
-            <stop offset="100%" stopColor="rgba(10,79,51,0.02)" />
-          </linearGradient>
-        </defs>
+      <div className="admin-chart__spark-frame">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={`Paid revenue · ${period}`}
+        >
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(10,79,51,0.28)" />
+              <stop offset="100%" stopColor="rgba(10,79,51,0.02)" />
+            </linearGradient>
+          </defs>
 
-        {[0.25, 0.5, 0.75].map((t) => {
-          const y = padTop + chartH * (1 - t)
+          {[0.25, 0.5, 0.75].map((t) => {
+            const y = padTop + chartH * (1 - t)
+            return (
+              <line
+                key={t}
+                x1={padL}
+                x2={width - padR}
+                y1={y}
+                y2={y}
+                stroke="rgba(10,79,51,0.08)"
+              />
+            )
+          })}
+
+          <polygon points={area} fill={`url(#${gradId})`} />
+          <polyline
+            points={line}
+            fill="none"
+            stroke="#0a4f33"
+            strokeWidth="2.25"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+
+          {coords.map((p, i) => {
+            const tipLabel = `${p.label}: ${formatInr(p.value)}`
+            const showLabel = shouldShowAxisLabel(i, rows.length, period)
+            const anchor =
+              i === 0 ? 'start' : i === rows.length - 1 ? 'end' : 'middle'
+            return (
+              <g key={`${p.label}-${i}`}>
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={12}
+                  fill="transparent"
+                  onMouseMove={(e) => setTip(tipFromEvent(e, tipLabel))}
+                  onMouseLeave={() => setTip(null)}
+                />
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={period === 'month' ? 2.75 : 3.5}
+                  fill="#fff"
+                  stroke="#0a4f33"
+                  strokeWidth="2"
+                  pointerEvents="none"
+                />
+                {showLabel && (
+                  <text
+                    x={p.x}
+                    y={height - 8}
+                    textAnchor={anchor}
+                    className="admin-chart__axis"
+                  >
+                    {p.label}
+                  </text>
+                )}
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+      <ChartTip tip={tip} />
+    </div>
+  )
+}
+
+/** Horizontal ranking bars — payments, categories, stock, sources */
+export function HorizontalBars({
+  rows = [],
+  valueFormat,
+  onSelect,
+  emptyLabel = 'Nothing to chart yet',
+  maxItems = 6,
+}) {
+  const [tip, setTip] = useState(null)
+  const list = rows.slice(0, maxItems)
+  const max = Math.max(1, ...list.map((r) => Number(r.value) || 0))
+  const format = valueFormat || ((n) => String(n))
+
+  if (!list.length) {
+    return <p className="admin-chart__empty">{emptyLabel}</p>
+  }
+
+  return (
+    <div
+      className="admin-chart admin-chart--hbar"
+      onMouseLeave={() => setTip(null)}
+    >
+      <ul className="admin-hbar">
+        {list.map((row) => {
+          const value = Number(row.value) || 0
+          const pct = Math.round((value / max) * 100)
+          const tipLabel = `${row.label}: ${format(value)}`
+          const interactive = Boolean(onSelect && row.key)
+          const Tag = interactive ? 'button' : 'div'
           return (
-            <line
-              key={t}
-              x1={padL}
-              x2={width - padR}
-              y1={y}
-              y2={y}
-              stroke="rgba(10,79,51,0.08)"
+            <li key={row.key || row.label}>
+              <Tag
+                type={interactive ? 'button' : undefined}
+                className={`admin-hbar__row${interactive ? ' is-click' : ''}`}
+                onClick={interactive ? () => onSelect(row.key) : undefined}
+                onMouseMove={(e) => setTip(tipFromEvent(e, tipLabel))}
+                onMouseLeave={() => setTip(null)}
+              >
+                <span className="admin-hbar__label" title={row.label}>
+                  {row.label}
+                </span>
+                <div className="admin-hbar__track" aria-hidden="true">
+                  <div
+                    className="admin-hbar__fill"
+                    style={{
+                      width: `${Math.max(4, pct)}%`,
+                      background: row.color || undefined,
+                    }}
+                  />
+                </div>
+                <strong className="admin-hbar__value">{format(value)}</strong>
+              </Tag>
+            </li>
+          )
+        })}
+      </ul>
+      <ChartTip tip={tip} />
+    </div>
+  )
+}
+
+/** Pipeline funnel — lead statuses in conversion order */
+export function FunnelChart({ stages = [], onSelect }) {
+  const [tip, setTip] = useState(null)
+  const max = Math.max(1, ...stages.map((s) => Number(s.value) || 0))
+  const total = stages.reduce((s, x) => s + (Number(x.value) || 0), 0)
+
+  if (!stages.length || total === 0) {
+    return <p className="admin-chart__empty">No pipeline data yet</p>
+  }
+
+  return (
+    <div
+      className="admin-chart admin-chart--funnel"
+      onMouseLeave={() => setTip(null)}
+    >
+      <ul className="admin-funnel">
+        {stages.map((stage, i) => {
+          const value = Number(stage.value) || 0
+          const width = 42 + (value / max) * 58
+          const tipLabel = `${stage.label}: ${value}`
+          return (
+            <li key={stage.key || stage.label}>
+              <button
+                type="button"
+                className="admin-funnel__step"
+                style={{
+                  width: `${width}%`,
+                  background: stage.color || 'var(--admin-accent)',
+                }}
+                disabled={!onSelect}
+                onClick={() => onSelect?.(stage.key)}
+                onMouseMove={(e) => setTip(tipFromEvent(e, tipLabel))}
+                onMouseLeave={() => setTip(null)}
+              >
+                <span>{stage.label}</span>
+                <strong>{value}</strong>
+              </button>
+              {i < stages.length - 1 && (
+                <span className="admin-funnel__gap" aria-hidden="true" />
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      <ChartTip tip={tip} />
+    </div>
+  )
+}
+
+/** Stock health — stacked proportion bar + legend */
+export function StockHealthBar({ ok = 0, low = 0, out = 0 }) {
+  const [tip, setTip] = useState(null)
+  const total = ok + low + out
+  if (!total) {
+    return <p className="admin-chart__empty">No inventory loaded</p>
+  }
+
+  const segs = [
+    { key: 'ok', label: 'In stock', value: ok, color: '#0a4f33' },
+    { key: 'low', label: 'Low', value: low, color: '#b86a12' },
+    { key: 'out', label: 'Out', value: out, color: '#c0394f' },
+  ].filter((s) => s.value > 0)
+
+  return (
+    <div
+      className="admin-chart admin-chart--stock"
+      onMouseLeave={() => setTip(null)}
+    >
+      <div className="admin-stock-bar" role="img" aria-label="Inventory health">
+        {segs.map((seg) => {
+          const pct = Math.round((seg.value / total) * 100)
+          return (
+            <div
+              key={seg.key}
+              className="admin-stock-bar__seg"
+              style={{
+                width: `${Math.max(3, (seg.value / total) * 100)}%`,
+                background: seg.color,
+              }}
+              onMouseMove={(e) =>
+                setTip(tipFromEvent(e, `${seg.label}: ${seg.value} (${pct}%)`))
+              }
+              onMouseLeave={() => setTip(null)}
             />
           )
         })}
-
-        <polygon points={area} fill="url(#adminRevFill)" />
-        <polyline
-          points={line}
-          fill="none"
-          stroke="#0a4f33"
-          strokeWidth="2"
-          strokeLinejoin="miter"
-          strokeLinecap="butt"
-        />
-
-        {coords.map((p, i) => {
-          const tipLabel = `${p.label}: ${formatInr(p.value)}`
-          const showLabel = shouldShowAxisLabel(i, rows.length, period)
-          return (
-            <g key={`${p.label}-${i}`}>
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r={10}
-                fill="transparent"
-                onMouseMove={(e) => setTip(tipFromEvent(e, tipLabel))}
-                onMouseLeave={() => setTip(null)}
-              />
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r={period === 'month' ? 2.5 : 3.5}
-                fill="#fff"
-                stroke="#0a4f33"
-                strokeWidth="2"
-                pointerEvents="none"
-              />
-              {showLabel && (
-                <text
-                  x={p.x}
-                  y={height - 8}
-                  textAnchor="middle"
-                  className="admin-chart__axis"
-                >
-                  {p.label}
-                </text>
-              )}
-            </g>
-          )
-        })}
-      </svg>
+      </div>
+      <ul className="admin-stock-bar__legend">
+        {segs.map((seg) => (
+          <li key={seg.key}>
+            <i style={{ background: seg.color }} />
+            <span>{seg.label}</span>
+            <strong>{seg.value}</strong>
+          </li>
+        ))}
+      </ul>
       <ChartTip tip={tip} />
     </div>
   )
@@ -649,4 +817,85 @@ export function periodRangeHint(period) {
     default:
       return 'Last 7 days'
   }
+}
+
+/** Paid revenue by payment method */
+export function buildPaymentSeries(orders) {
+  const map = new Map()
+  for (const order of orders || []) {
+    if (order.paymentStatus !== 'paid') continue
+    const key = String(order.paymentMethod || 'other').toLowerCase()
+    const row = map.get(key) || { key, label: key.toUpperCase(), value: 0, count: 0 }
+    row.value += Number(order.totalAmount || 0)
+    row.count += 1
+    map.set(key, row)
+  }
+  return [...map.values()].sort((a, b) => b.value - a.value)
+}
+
+/** Units sold by category (from order line items) */
+export function buildCategorySeries(orders, resolveCategory) {
+  const map = new Map()
+  for (const order of orders || []) {
+    for (const item of order.items || []) {
+      const cat =
+        (typeof resolveCategory === 'function'
+          ? resolveCategory(item.productId)
+          : null) ||
+        item.categoryName ||
+        item.category ||
+        'Other'
+      const key = String(cat)
+      const row = map.get(key) || { key, label: key, value: 0 }
+      row.value += Number(item.quantity) || 1
+      map.set(key, row)
+    }
+  }
+  return [...map.values()].sort((a, b) => b.value - a.value)
+}
+
+/** Top products by units sold */
+export function buildTopProductSeries(orders, resolveTitle, limit = 6) {
+  const map = new Map()
+  for (const order of orders || []) {
+    for (const item of order.items || []) {
+      const id = item.productId || item.name || 'item'
+      const label =
+        (typeof resolveTitle === 'function' ? resolveTitle(item.productId) : null) ||
+        item.name ||
+        id
+      const row = map.get(id) || { key: id, label: String(label).slice(0, 42), value: 0 }
+      row.value += Number(item.quantity) || 1
+      map.set(id, row)
+    }
+  }
+  return [...map.values()].sort((a, b) => b.value - a.value).slice(0, limit)
+}
+
+/** Lead source mix from lead list */
+export function buildSourceSeries(leads, labels = {}) {
+  const map = new Map()
+  for (const lead of leads || []) {
+    const key = String(lead.source || 'other').toLowerCase()
+    const row = map.get(key) || {
+      key,
+      label: labels[key] || key,
+      value: 0,
+    }
+    row.value += 1
+    map.set(key, row)
+  }
+  return [...map.values()].sort((a, b) => b.value - a.value)
+}
+
+/** Lead creation buckets for period charts */
+export function buildLeadPeriodSeries(leads, period = 'week') {
+  return buildPeriodSeries(
+    (leads || []).map((l) => ({
+      createdAt: l.createdAt,
+      paymentStatus: 'paid',
+      totalAmount: 1,
+    })),
+    period
+  ).map((row) => ({ ...row, revenue: 0 }))
 }

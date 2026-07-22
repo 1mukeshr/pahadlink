@@ -9,11 +9,15 @@ async function seed() {
   const username = process.env.ADMIN_USERNAME || 'admin'
   const password = process.env.ADMIN_PASSWORD || 'admin123'
 
-  let user = await User.findOne({ $or: [{ email }, { username }] })
+  let user = await User.findOne({ $or: [{ email }, { username }] }).select(
+    '+password'
+  )
 
   if (user) {
     user.role = 'admin'
+    user.isActive = true
     user.password = password
+    user.markModified('password')
     await user.save()
     console.log(`Updated existing user to admin: ${username}`)
   } else {
@@ -27,12 +31,21 @@ async function seed() {
     console.log(`Created admin user: ${username}`)
   }
 
+  const check = await User.findOne({ username }).select('+password')
+  const ok = check && (await check.comparePassword(password))
+  if (!ok) {
+    throw new Error(
+      'Admin password hash check failed. Password was not stored correctly.'
+    )
+  }
+
   console.log({
     database: 'Pahadi_link',
     email,
     username,
     password,
-    role: user.role,
+    role: check.role,
+    loginCheck: 'ok',
   })
 
   await disconnectDB()

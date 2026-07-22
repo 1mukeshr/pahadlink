@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import CrmLead from '../models/CrmLead.js'
 
 const router = Router()
@@ -13,8 +14,17 @@ const TOPICS = [
   'Other',
 ]
 
+function requireMongo(_req, res, next) {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      message: 'Contact form unavailable — database disconnected.',
+    })
+  }
+  return next()
+}
+
 /** Public contact form / live chat -> CRM lead */
-router.post('/', async (req, res) => {
+router.post('/', requireMongo, async (req, res) => {
   try {
     const name = String(req.body.name || '').trim()
     const email = String(req.body.email || '').trim().toLowerCase()

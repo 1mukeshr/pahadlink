@@ -101,7 +101,8 @@ app.use('/api/crm', crmRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/reviews', reviewRoutes)
 
-app.use((err, _req, res, _next) => {
+app.use((err, _req, res, next) => {
+  void next
   console.error(err)
   const isCors = String(err.message || '').startsWith('CORS blocked')
   res.status(isCors ? 403 : err.status || 500).json({
@@ -112,10 +113,13 @@ app.use((err, _req, res, _next) => {
 async function start() {
   try {
     await connectDB()
+    const health = healthPayload()
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`API listening on http://0.0.0.0:${PORT} (all interfaces)`)
       console.log(`  Local:   http://127.0.0.1:${PORT}`)
-      console.log('Database: Pahadi_link (users, orders, crmleads, reviews)')
+      console.log(
+        `Database: ${health.database} (authReady=${health.authReady}, ordersReady=${health.ordersReady})`,
+      )
     })
   } catch (error) {
     console.error('Failed to start server:', error.message)

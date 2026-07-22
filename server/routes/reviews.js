@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import Review, { buildRatingSummary } from '../models/Review.js'
-import { protect, optionalProtect } from '../middleware/auth.js'
+import { optionalProtect } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -144,7 +144,8 @@ router.post('/', requireMongo, optionalProtect, async (req, res) => {
           userLocation,
           rating,
           comment,
-          verified: Boolean(req.body.verified),
+          // Never trust client "verified" — only order-linked reviews are verified
+          verified: false,
         },
         { new: true, upsert: true, setDefaultsOnInsert: true }
       )

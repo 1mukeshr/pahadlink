@@ -136,7 +136,19 @@ router.post('/forgot-password', async (req, res) => {
         .split(',')
         .map((s) => s.trim())
         .find(Boolean) || 'http://localhost:5173'
-    const base = front.replace(/\/$/, '')
+    let base = front.replace(/\/$/, '')
+    // GitHub Pages project site lives under /pahadlink
+    try {
+      const u = new URL(base)
+      if (
+        /\.github\.io$/i.test(u.hostname) &&
+        (u.pathname === '/' || u.pathname === '')
+      ) {
+        base = `${u.origin}/pahadlink`
+      }
+    } catch {
+      // keep base as-is
+    }
     const resetUrl = `${base}/#/reset-password?token=${encodeURIComponent(resetToken)}`
 
     await sendMail({

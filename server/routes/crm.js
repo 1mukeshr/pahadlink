@@ -11,16 +11,20 @@ router.use(protect, authorize('admin'))
 /** CRM dashboard summary */
 router.get('/stats', async (_req, res) => {
   try {
-    const [leads, customers, byStatus, recentOrders] = await Promise.all([
+    const [leads, customers, byStatus, bySource, recentOrders] = await Promise.all([
       CrmLead.countDocuments(),
       User.countDocuments({ role: 'customer' }),
       CrmLead.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      CrmLead.aggregate([{ $group: { _id: '$source', count: { $sum: 1 } } }]),
       Order.countDocuments({
         createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       }),
     ])
 
     const statusMap = Object.fromEntries(byStatus.map((s) => [s._id, s.count]))
+    const sourceMap = Object.fromEntries(
+      bySource.map((s) => [s._id || 'other', s.count])
+    )
 
     res.json({
       leads,
@@ -32,6 +36,14 @@ router.get('/stats', async (_req, res) => {
         interested: statusMap.interested || 0,
         converted: statusMap.converted || 0,
         lost: statusMap.lost || 0,
+      },
+      bySource: {
+        website: sourceMap.website || 0,
+        phone: sourceMap.phone || 0,
+        whatsapp: sourceMap.whatsapp || 0,
+        referral: sourceMap.referral || 0,
+        social: sourceMap.social || 0,
+        other: sourceMap.other || 0,
       },
     })
   } catch (error) {

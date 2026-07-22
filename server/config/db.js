@@ -2,9 +2,14 @@ import mongoose from 'mongoose'
 import { fileUserStore } from '../store/fileUserStore.js'
 
 const DEFAULT_URI = 'mongodb://127.0.0.1:27017/Pahadi_link'
+const DEFAULT_DB_NAME = 'Pahadi_link'
 
 export function getMongoUri() {
   return process.env.MONGODB_URI || DEFAULT_URI
+}
+
+export function getMongoDbName() {
+  return process.env.MONGODB_DB || DEFAULT_DB_NAME
 }
 
 export function isFileDbMode() {
@@ -22,6 +27,7 @@ export async function connectDB() {
 
   if (forceFile) {
     fileUserStore.enable()
+    console.warn('USE_FILE_DB=true — using file user store (orders need Mongo).')
     return null
   }
 
@@ -30,6 +36,7 @@ export async function connectDB() {
 
   try {
     await mongoose.connect(uri, {
+      dbName: getMongoDbName(),
       serverSelectionTimeoutMS: 8000,
     })
 

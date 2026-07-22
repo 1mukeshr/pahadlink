@@ -114,38 +114,39 @@ const ProductReviews = ({ product, onSummaryChange }) => {
             <h2 id="product-reviews-title">Ratings & Reviews</h2>
           </header>
 
-          <div className="product-reviews__overview">
-            <div className="product-reviews__score-block" aria-live="polite">
-              <div className="product-reviews__score-row">
-                <strong>{(summary.average || 0).toFixed(1)}</strong>
-                <span className="product-reviews__score-star" aria-hidden="true">
-                  ★
-                </span>
+          <div className="product-reviews__top">
+            <div className="product-reviews__overview">
+              <div className="product-reviews__score-block" aria-live="polite">
+                <div className="product-reviews__score-row">
+                  <strong>{(summary.average || 0).toFixed(1)}</strong>
+                  <span className="product-reviews__score-star" aria-hidden="true">
+                    ★
+                  </span>
+                </div>
+                <StarRating rating={summary.average || 0} size={14} />
+                <p className="product-reviews__count">
+                  {loading
+                    ? 'Loading…'
+                    : `${summary.count} Ratings & ${summary.count} Reviews`}
+                </p>
               </div>
-              <StarRating rating={summary.average || 0} size={14} />
-              <p className="product-reviews__count">
-                {loading
-                  ? 'Loading…'
-                  : `${summary.count} Ratings & ${summary.count} Reviews`}
-              </p>
+
+              <ul className="product-reviews__bars" aria-label="Rating breakdown">
+                {bars.map((row) => (
+                  <li key={row.star}>
+                    <span>
+                      {row.star} ★
+                    </span>
+                    <div className="product-reviews__bar" role="presentation">
+                      <i style={{ width: `${row.pct}%` }} />
+                    </div>
+                    <em>{row.count}</em>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <ul className="product-reviews__bars" aria-label="Rating breakdown">
-              {bars.map((row) => (
-                <li key={row.star}>
-                  <span>
-                    {row.star} ★
-                  </span>
-                  <div className="product-reviews__bar" role="presentation">
-                    <i style={{ width: `${row.pct}%` }} />
-                  </div>
-                  <em>{row.count}</em>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <form className="product-reviews__form" onSubmit={onSubmit}>
+            <form className="product-reviews__form" onSubmit={onSubmit}>
               <div className="product-reviews__form-row">
                 <span className="product-reviews__form-label">Rate this product</span>
                 <StarPicker
@@ -205,7 +206,8 @@ const ProductReviews = ({ product, onSummaryChange }) => {
                   </Link>
                 )}
               </div>
-          </form>
+            </form>
+          </div>
 
           <div className="product-reviews__list">
             {reviews.length === 0 && !loading ? (

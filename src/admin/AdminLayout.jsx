@@ -26,10 +26,10 @@ export default function AdminLayout({ children, mode = 'admin' }) {
 
   const portalLabel =
     mode === 'admin'
-      ? 'Admin portal'
+      ? 'Admin'
       : isAdmin
-        ? 'Admin · Sellers'
-        : 'Seller portal'
+        ? 'Sellers'
+        : 'Seller'
 
   const roleLabel =
     user?.role === 'admin' ? 'Admin' : user?.role === 'seller' ? 'Seller' : user?.role
@@ -119,23 +119,63 @@ export default function AdminLayout({ children, mode = 'admin' }) {
           <p className="admin-nav__section">Workspace</p>
           <nav className="admin-nav__links">
             {isAdmin && (
+            <NavLink
+              to={ROUTES.ADMIN}
+              className={({ isActive }) =>
+                `admin-nav__link${isActive ? ' is-active' : ''}`
+              }
+              end
+              onClick={() => setNavOpen(false)}
+            >
+              <span className="admin-nav__ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <path
+                    d="M4 19V9l4 3 4-7 4 5 4-3v12H4Z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M4 19h16"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+              Dashboard
+            </NavLink>
+            )}
+            {isAdmin && (
               <NavLink
-                to={ROUTES.ADMIN}
+                to={ROUTES.ADMIN_ORDERS}
                 className={({ isActive }) =>
                   `admin-nav__link${isActive ? ' is-active' : ''}`
                 }
-                end
                 onClick={() => setNavOpen(false)}
               >
                 <span className="admin-nav__ico" aria-hidden="true">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                    <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                    <rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                    <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                    <rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                    <path
+                      d="M7 4h10l1 3H6l1-3Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M6 7h12v11.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18.5V7Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M9 11h6M9 15h4"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </span>
-                Dashboard
+                Orders
               </NavLink>
             )}
             {isAdmin && (

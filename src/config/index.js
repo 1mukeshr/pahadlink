@@ -53,6 +53,7 @@ export const ROUTES = {
   ACCOUNT: '/account',
   ORDERS: '/orders',
   ADMIN: '/admin',
+  ADMIN_ORDERS: '/admin/orders',
   ADMIN_LEADS: '/admin/leads',
   SELLER: '/seller',
   CONTACT: '/contact',
@@ -107,7 +108,10 @@ export function resolvePostAuthPath(user, from, intent) {
   }
 
   if (isStaff) {
-    if (dest.startsWith(ROUTES.ADMIN) || dest.startsWith(ROUTES.SELLER)) {
+    if (
+      dest.startsWith(ROUTES.ADMIN) ||
+      dest.startsWith(ROUTES.SELLER)
+    ) {
       return dest
     }
     return homePathForRole(user)

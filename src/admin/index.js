@@ -1,4 +1,6 @@
 export { default as AdminPage } from './AdminPage'
+export { default as AdminOrdersPage } from './AdminOrdersPage'
+export { default as AdminPortal } from './AdminPortal'
 export { default as LeadsPage } from './LeadsPage'
 export { default as SellerPage } from './SellerPage'
 export { default as AdminLayout } from './AdminLayout'

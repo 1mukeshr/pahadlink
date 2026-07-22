@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   fetchInventory,
   fetchOrders,
@@ -7,6 +8,7 @@ import {
   updateOrder,
 } from '../services/orderService'
 import { getProductById } from '../data/siteData'
+import { ROUTES } from '../config'
 import { CopyIcon, CheckIcon, SearchIcon } from '../components/icons'
 import AdminLayout from './AdminLayout'
 import {
@@ -14,7 +16,12 @@ import {
   OrdersBarChart,
   RevenueSparkline,
   KpiSpark,
+  HorizontalBars,
+  StockHealthBar,
   buildPeriodSeries,
+  buildPaymentSeries,
+  buildCategorySeries,
+  buildTopProductSeries,
   PERIOD_OPTIONS,
   periodChartTitle,
   periodRevenueTitle,
@@ -113,16 +120,34 @@ const STATUS_COLORS = {
 
 const DANGER_STATUSES = new Set(['cancelled'])
 
-export default function OrdersDesk({ mode = 'admin' }) {
+export default function OrdersDesk({
+  mode = 'admin',
+  view = 'full',
+  bare = false,
+}) {
   const isAdmin = mode === 'admin'
-  const title = isAdmin ? 'Operations dashboard' : 'Sellers'
+  const showDashboard = view === 'full' || view === 'dashboard'
+  const showOrders = view === 'full' || view === 'orders'
+  const showInventory = isAdmin && (view === 'full' || view === 'orders')
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const title =
+    view === 'orders'
+      ? 'Orders'
+      : view === 'dashboard'
+        ? 'Dashboard'
+        : isAdmin
+          ? 'Operations dashboard'
+          : 'Sellers'
   const nextMap = isAdmin ? ADMIN_NEXT : SELLER_NEXT
 
   const [orders, setOrders] = useState([])
   const [allOrders, setAllOrders] = useState([])
   const [stats, setStats] = useState(null)
   const [inventory, setInventory] = useState([])
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState(() =>
+    view === 'orders' ? searchParams.get('status') || '' : ''
+  )
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [loading, setLoading] = useState(true)
@@ -136,12 +161,27 @@ export default function OrdersDesk({ mode = 'admin' }) {
   const [orderPage, setOrderPage] = useState(1)
   const [updatedAt, setUpdatedAt] = useState(null)
   const [period, setPeriod] = useState('week')
+  const [itemsPopup, setItemsPopup] = useState(null)
   const ORDER_PAGE_SIZE = 8
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 320)
     return () => clearTimeout(t)
   }, [query])
+
+  useEffect(() => {
+    if (!itemsPopup) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') setItemsPopup(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [itemsPopup])
+
+  useEffect(() => {
+    if (view !== 'orders') return
+    setStatusFilter(searchParams.get('status') || '')
+  }, [view, searchParams])
 
   useEffect(() => {
     setOrderPage(1)
@@ -335,23 +375,62 @@ export default function OrdersDesk({ mode = 'admin' }) {
         for (const [size, qty] of Object.entries(item.stockBySize)) {
           if (Number(qty) <= 5) {
             rows.push({
-              id: `${item.productId}-${size}`,
+              key: `${item.productId}-${size}`,
               label: `${productTitle(item.productId)} · ${size}`,
-              qty: Number(qty),
+              value: Number(qty),
+              color: Number(qty) <= 0 ? '#c0394f' : '#b86a12',
             })
           }
         }
       } else if (typeof item.stock === 'number' && item.stock <= 5) {
         rows.push({
-          id: item.productId,
+          key: item.productId,
           label: productTitle(item.productId),
-          qty: item.stock,
+          value: item.stock,
+          color: item.stock <= 0 ? '#c0394f' : '#b86a12',
         })
       }
     }
-    return rows.slice(0, 8)
+    return rows.sort((a, b) => a.value - b.value).slice(0, 8)
   }, [inventory])
 
+  const paymentSeries = useMemo(() => {
+    const colors = {
+      razorpay: '#2f6fa8',
+      cod: '#b86a12',
+      upi: '#127048',
+      card: '#5b6fd4',
+      other: '#6b8075',
+    }
+    return buildPaymentSeries(allOrders).map((row) => ({
+      ...row,
+      color: colors[row.key] || colors.other,
+    }))
+  }, [allOrders])
+
+  const categorySeries = useMemo(
+    () =>
+      buildCategorySeries(allOrders, productCategory).map((row, i) => ({
+        ...row,
+        color: ['#0a4f33', '#127048', '#2f6fa8', '#b86a12', '#5b6fd4', '#c45c3a'][
+          i % 6
+        ],
+      })),
+    [allOrders]
+  )
+
+  const topProducts = useMemo(
+    () =>
+      buildTopProductSeries(allOrders, productTitle, 6).map((row, i) => ({
+        ...row,
+        color: ['#0a4f33', '#127048', '#2f6fa8', '#b86a12', '#5b6fd4', '#c45c3a'][
+          i % 6
+        ],
+      })),
+    [allOrders]
+  )
+
+  const stockOk = Math.max(0, invStats.total - invStats.low - invStats.out)
   const applyUpdate = async (orderId, payload) => {
     if (DANGER_STATUSES.has(payload.status)) {
       const ok = window.confirm('Cancel this order? This cannot be undone.')
@@ -381,6 +460,21 @@ export default function OrdersDesk({ mode = 'admin' }) {
   }
 
   const setFilter = (value) => {
+    const next = value && value !== statusFilter ? value : ''
+    if (view === 'dashboard' && isAdmin) {
+      navigate(
+        next
+          ? `${ROUTES.ADMIN_ORDERS}?status=${encodeURIComponent(next)}`
+          : ROUTES.ADMIN_ORDERS
+      )
+      return
+    }
+    if (view === 'orders' && isAdmin) {
+      setStatusFilter(next)
+      if (next) setSearchParams({ status: next })
+      else setSearchParams({})
+      return
+    }
     setStatusFilter((prev) => (prev === value ? '' : value))
   }
 
@@ -396,8 +490,8 @@ export default function OrdersDesk({ mode = 'admin' }) {
   const pagedOrders = orders.slice(orderPageStart, orderPageStart + ORDER_PAGE_SIZE)
   const orderRangeEnd = Math.min(orderPageStart + ORDER_PAGE_SIZE, orders.length)
 
-  return (
-    <AdminLayout mode={mode}>
+  const desk = (
+    <>
       <div className="admin-desk">
       <header className="admin-head">
         <div className="admin-head__copy">
@@ -433,17 +527,26 @@ export default function OrdersDesk({ mode = 'admin' }) {
           >
             {loading ? 'Refreshing…' : 'Refresh'}
           </button>
+          {view === 'dashboard' && isAdmin && (
+            <button
+              type="button"
+              className="admin-btn"
+              onClick={() => navigate(ROUTES.ADMIN_ORDERS)}
+            >
+              Manage orders
+            </button>
+          )}
         </div>
       </header>
 
-      {stats && (
+      {showDashboard && stats && (
         <div className="admin-kpi" aria-label="Key metrics">
           <button
             type="button"
             className={`admin-kpi__card admin-kpi__card--click${
               !statusFilter ? ' admin-kpi__card--active' : ''
             }`}
-            onClick={() => setStatusFilter('')}
+            onClick={() => setFilter('')}
           >
             <div className="admin-kpi__top">
               <span>Total orders</span>
@@ -523,19 +626,9 @@ export default function OrdersDesk({ mode = 'admin' }) {
         </div>
       )}
 
-      <div className="admin-dash">
-        <section className="admin-panel-card">
-          <header className="admin-panel-card__head">
-            <h2>Status mix</h2>
-            <p>{rangeHint} · tap a status to filter</p>
-          </header>
-          <StatusDonut
-            segments={donutSegments}
-            onSelect={(key) => setFilter(key)}
-          />
-        </section>
-
-        <section className="admin-panel-card">
+      {showDashboard && (
+      <div className="admin-dash admin-dash--graphs">
+        <section className="admin-panel-card admin-panel-card--wide">
           <header className="admin-panel-card__head">
             <h2>{chartTitle}</h2>
             <p>{rangeHint}</p>
@@ -543,44 +636,110 @@ export default function OrdersDesk({ mode = 'admin' }) {
           <OrdersBarChart series={daily} period={period} />
         </section>
 
+        <section className="admin-panel-card admin-panel-card--side">
+          <header className="admin-panel-card__head">
+            <h2>Status</h2>
+            <p>Tap to open orders</p>
+          </header>
+          <StatusDonut
+            segments={donutSegments}
+            size={152}
+            onSelect={(key) => setFilter(key)}
+          />
+        </section>
+
         {isAdmin && (
-          <section className="admin-panel-card">
+          <section className="admin-panel-card admin-panel-card--wide">
             <header className="admin-panel-card__head">
               <h2>{revenueTitle}</h2>
-              <p>{rangeHint}</p>
+              <p>
+                {rangeHint} · total{' '}
+                <strong className="admin-panel-card__inline">
+                  {formatPrice(weekRevenue)}
+                </strong>
+              </p>
             </header>
             <RevenueSparkline
               period={period}
               series={daily.map((d) => ({ label: d.label, value: d.revenue }))}
             />
-            <p className="admin-panel-card__foot">
-              Period total <strong>{formatPrice(weekRevenue)}</strong>
-            </p>
           </section>
         )}
 
         {isAdmin && (
-          <section className="admin-panel-card">
+          <section className="admin-panel-card admin-panel-card--side">
             <header className="admin-panel-card__head">
-              <h2>Low stock</h2>
-              <p>≤ 5 units</p>
+              <h2>Payments</h2>
+              <p>Paid revenue by method</p>
             </header>
-            {lowStock.length === 0 ? (
-              <p className="admin-chart__empty">Stock looks healthy</p>
-            ) : (
-              <ul className="admin-stock-list">
-                {lowStock.map((row) => (
-                  <li key={row.id}>
-                    <span>{row.label}</span>
-                    <strong className={row.qty === 0 ? 'is-out' : ''}>{row.qty}</strong>
-                  </li>
-                ))}
-              </ul>
+            <HorizontalBars
+              rows={paymentSeries}
+              valueFormat={formatPrice}
+              emptyLabel="No paid orders yet"
+              maxItems={5}
+            />
+          </section>
+        )}
+
+        {isAdmin && (
+          <section className="admin-panel-card admin-panel-card--third">
+            <header className="admin-panel-card__head">
+              <h2>Categories</h2>
+              <p>Units sold</p>
+            </header>
+            <HorizontalBars
+              rows={categorySeries}
+              valueFormat={(n) => `${n}`}
+              emptyLabel="No sales yet"
+              maxItems={5}
+            />
+          </section>
+        )}
+
+        {isAdmin && (
+          <section className="admin-panel-card admin-panel-card--third">
+            <header className="admin-panel-card__head">
+              <h2>Bestsellers</h2>
+              <p>By units</p>
+            </header>
+            <HorizontalBars
+              rows={topProducts}
+              valueFormat={(n) => `${n}`}
+              emptyLabel="No sales yet"
+              maxItems={5}
+            />
+          </section>
+        )}
+
+        {isAdmin && (
+          <section className="admin-panel-card admin-panel-card--third">
+            <header className="admin-panel-card__head">
+              <h2>Stock</h2>
+              <p>
+                {invStats.low} low · {invStats.out} out
+              </p>
+            </header>
+            <StockHealthBar
+              ok={stockOk}
+              low={invStats.low}
+              out={invStats.out}
+            />
+            {lowStock.length > 0 && (
+              <div className="admin-panel-card__stack">
+                <HorizontalBars
+                  rows={lowStock}
+                  valueFormat={(n) => `${n}`}
+                  emptyLabel="Stock looks healthy"
+                  maxItems={5}
+                />
+              </div>
             )}
           </section>
         )}
       </div>
+      )}
 
+      {showOrders && (
       <section className="admin-orders-section">
         <header className="admin-orders-section__head">
           <div>
@@ -608,10 +767,10 @@ export default function OrdersDesk({ mode = 'admin' }) {
               role="tab"
               aria-selected={statusFilter === chip.key}
               className={`admin-chip${statusFilter === chip.key ? ' is-active' : ''}`}
-              onClick={() => setStatusFilter(chip.key)}
+              onClick={() => setFilter(chip.key)}
             >
               {chip.label}
-              {stats ? ` · ${chip.count}` : ''}
+              {stats ? <em>{chip.count}</em> : null}
             </button>
           ))}
         </div>
@@ -641,7 +800,7 @@ export default function OrdersDesk({ mode = 'admin' }) {
                 onClick={() => {
                   setQuery('')
                   setDebouncedQuery('')
-                  setStatusFilter('')
+                  setFilter('')
                 }}
                 aria-label="Clear search and filters"
                 title="Clear"
@@ -761,13 +920,30 @@ export default function OrdersDesk({ mode = 'admin' }) {
                         <td>
                           <ul className="admin-card__items">
                             {itemSummary.map((item, idx) => (
-                              <li key={`${order.id}-i-${idx}`}>
-                                {item.name}
-                                {item.size ? ` · ${item.size}` : ''} ×
-                                {item.quantity}
+                              <li key={`${order.id}-i-${idx}`} title={item.name}>
+                                <span>
+                                  {item.name}
+                                  {item.size ? ` · ${item.size}` : ''}
+                                </span>
+                                <em>×{item.quantity}</em>
                               </li>
                             ))}
-                            {extraItems > 0 && <li>+{extraItems} more</li>}
+                            {extraItems > 0 && (
+                              <li>
+                                <button
+                                  type="button"
+                                  className="admin-card__more"
+                                  onClick={() =>
+                                    setItemsPopup({
+                                      orderNumber: order.orderNumber,
+                                      items: order.items || [],
+                                    })
+                                  }
+                                >
+                                  +{extraItems} more
+                                </button>
+                              </li>
+                            )}
                           </ul>
                         </td>
                         <td>
@@ -924,123 +1100,224 @@ export default function OrdersDesk({ mode = 'admin' }) {
           </div>
         )}
       </section>
+      )}
 
-      {isAdmin && inventory.length > 0 && (
+      {showInventory && inventory.length > 0 && (
         <section className="admin-inventory" aria-labelledby="admin-inv-title">
           <header className="admin-inventory__head">
-            <div>
-              <h2 id="admin-inv-title">Full inventory</h2>
-              <p>
-                {invStats.total} products · {invStats.low} low · {invStats.out}{' '}
-                out of stock
-              </p>
+            <div className="admin-inventory__head-copy">
+              <h2 id="admin-inv-title">Inventory</h2>
             </div>
+            <div className="admin-inventory__stats" aria-label="Inventory summary">
+              <div>
+                <em>Total</em>
+                <strong>{invStats.total}</strong>
+              </div>
+              <div className="is-low">
+                <em>Low</em>
+                <strong>{invStats.low}</strong>
+              </div>
+              <div className="is-out">
+                <em>Out</em>
+                <strong>{invStats.out}</strong>
+              </div>
+            </div>
+          </header>
+
+          <div className="admin-inventory__controls">
             <div className="admin-inventory__filters">
               <button
                 type="button"
                 className={`admin-chip${invFilter === 'all' ? ' is-active' : ''}`}
                 onClick={() => setInvFilter('all')}
               >
-                All · {invStats.total}
+                All
+                <em>{invStats.total}</em>
               </button>
               <button
                 type="button"
                 className={`admin-chip${invFilter === 'low' ? ' is-active' : ''}`}
                 onClick={() => setInvFilter('low')}
               >
-                Low · {invStats.low}
+                Low
+                <em>{invStats.low}</em>
               </button>
               <button
                 type="button"
                 className={`admin-chip${invFilter === 'out' ? ' is-active' : ''}`}
                 onClick={() => setInvFilter('out')}
               >
-                Out · {invStats.out}
+                Out
+                <em>{invStats.out}</em>
               </button>
             </div>
-          </header>
 
-          <div className="admin-inventory__toolbar">
-            <input
-              type="search"
-              placeholder="Search product name, id, category"
-              value={invQuery}
-              onChange={(e) => setInvQuery(e.target.value)}
-              aria-label="Search inventory"
-            />
-            {invQuery && (
-              <button
-                type="button"
-                className="admin-btn admin-btn--ghost"
-                onClick={() => setInvQuery('')}
-              >
-                Clear
-              </button>
-            )}
+            <label className="admin-inventory__search">
+              <span className="admin-inventory__search-ico" aria-hidden="true">
+                <SearchIcon size={15} />
+              </span>
+              <input
+                type="search"
+                placeholder="Search name, id, category"
+                value={invQuery}
+                onChange={(e) => setInvQuery(e.target.value)}
+                aria-label="Search inventory"
+              />
+              {invQuery ? (
+                <button
+                  type="button"
+                  className="admin-inventory__search-clear"
+                  onClick={() => setInvQuery('')}
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              ) : null}
+            </label>
           </div>
 
           {inventoryRows.length === 0 ? (
             <p className="admin-empty">No products match this inventory filter.</p>
           ) : (
-            <ul className="admin-inventory__list">
-              {inventoryRows.map((row) => (
-                <li key={row.productId} className="admin-inv-row">
-                  <div className="admin-inv-row__product">
-                    <div className="admin-inv-row__thumb" aria-hidden="true">
-                      {row.image ? (
-                        <img src={row.image} alt="" />
+            <div className="admin-inventory__board">
+              <div className="admin-inventory__cols" aria-hidden="true">
+                <span>Product</span>
+                <span>Stock by size</span>
+                <span>Status</span>
+              </div>
+              <ul className="admin-inventory__list">
+                {inventoryRows.map((row) => (
+                  <li
+                    key={row.productId}
+                    className={`admin-inv-row admin-inv-row--${row.level}`}
+                  >
+                    <div className="admin-inv-row__product">
+                      <div className="admin-inv-row__thumb" aria-hidden="true">
+                        {row.image ? (
+                          <img src={row.image} alt="" />
+                        ) : (
+                          <span>{row.name.slice(0, 1)}</span>
+                        )}
+                      </div>
+                      <div className="admin-inv-row__meta">
+                        <strong title={row.name}>{row.name}</strong>
+                        <span>
+                          {row.category}
+                          <code>{row.productId}</code>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="admin-inv-row__stock">
+                      {row.sizes ? (
+                        <div className="admin-inv-sizes">
+                          {row.sizes.map((s) => (
+                            <span
+                              key={s.size}
+                              className={`admin-inv-size admin-inv-size--${s.level}`}
+                              title={`${s.size}: ${s.qty}`}
+                            >
+                              <em>{s.size}</em>
+                              <strong>{s.qty}</strong>
+                            </span>
+                          ))}
+                        </div>
                       ) : (
-                        <span>{row.name.slice(0, 1)}</span>
+                        <span
+                          className={`admin-inv-total admin-inv-total--${row.level}`}
+                        >
+                          {row.total} units
+                        </span>
                       )}
                     </div>
-                    <div className="admin-inv-row__meta">
-                      <strong>{row.name}</strong>
-                      <span>
-                        {row.category} · <code>{row.productId}</code>
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="admin-inv-row__stock">
-                    {row.sizes ? (
-                      <div className="admin-inv-sizes">
-                        {row.sizes.map((s) => (
-                          <span
-                            key={s.size}
-                            className={`admin-inv-size admin-inv-size--${s.level}`}
-                            title={`${s.size}: ${s.qty}`}
-                          >
-                            <em>{s.size}</em>
-                            <strong>{s.qty}</strong>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
+                    <div className="admin-inv-row__side">
                       <span
-                        className={`admin-inv-total admin-inv-total--${row.level}`}
+                        className={`admin-badge admin-badge--inv-${row.level}`}
                       >
-                        {row.total} units
+                        {row.level === 'out'
+                          ? 'Out'
+                          : row.level === 'low'
+                            ? 'Low'
+                            : 'In stock'}
                       </span>
-                    )}
-                  </div>
-
-                  <div className="admin-inv-row__side">
-                    <span className={`admin-badge admin-badge--inv-${row.level}`}>
-                      {row.level === 'out'
-                        ? 'Out of stock'
-                        : row.level === 'low'
-                          ? 'Low stock'
-                          : 'In stock'}
-                    </span>
-                    <strong>{row.total}</strong>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                      <strong>
+                        {row.total}
+                        <em>units</em>
+                      </strong>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </section>
       )}
       </div>
-    </AdminLayout>
+
+      {itemsPopup && (
+        <div className="admin-items-popup" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className="admin-items-popup__backdrop"
+            aria-label="Close items"
+            onClick={() => setItemsPopup(null)}
+          />
+          <div className="admin-items-popup__panel">
+            <header className="admin-items-popup__head">
+              <div>
+                <p className="admin-items-popup__kicker">Order items</p>
+                <h2>{itemsPopup.orderNumber}</h2>
+              </div>
+              <button
+                type="button"
+                className="admin-btn admin-btn--ghost"
+                onClick={() => setItemsPopup(null)}
+              >
+                Close
+              </button>
+            </header>
+            <ul className="admin-items-popup__list">
+              {itemsPopup.items.map((item, idx) => {
+                const qty = Number(item.quantity) || 1
+                const price = Number(item.price) || 0
+                const line = price * qty
+                return (
+                  <li key={`${itemsPopup.orderNumber}-full-${idx}`}>
+                    <div className="admin-items-popup__main">
+                      <strong title={item.name}>{item.name}</strong>
+                      <span>
+                        {item.size ? `Size ${item.size}` : 'Standard'}
+                        {' · '}
+                        Qty {qty}
+                      </span>
+                    </div>
+                    <div className="admin-items-popup__price">
+                      {price > 0 ? (
+                        <>
+                          <em>
+                            {formatPrice(price)} × {qty}
+                          </em>
+                          <strong>{formatPrice(line)}</strong>
+                        </>
+                      ) : (
+                        <strong>×{qty}</strong>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="admin-items-popup__foot">
+              {itemsPopup.items.length} item
+              {itemsPopup.items.length === 1 ? '' : 's'}
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   )
+
+  if (bare) return desk
+  return <AdminLayout mode={mode}>{desk}</AdminLayout>
 }

@@ -640,13 +640,13 @@ const Checkout = () => {
               aria-label="Close"
               onClick={dismissOrderPopup}
             >
-              <CloseIcon size={16} />
+              <CloseIcon size={14} />
             </button>
 
             <p className="order-popup__brand">PahadLink</p>
 
             <span className="order-popup__icon" aria-hidden="true">
-              <CheckCircleIcon size={36} />
+              <CheckCircleIcon size={28} />
             </span>
 
             <p className="order-popup__kicker">Order confirmed</p>
@@ -654,8 +654,7 @@ const Checkout = () => {
             <p className="order-popup__lead">
               {order.email ? (
                 <>
-                  We emailed <strong>{order.email}</strong>
-                  {order.payment !== 'cod' ? <> with your receipt</> : null}.
+                  Receipt sent to <strong>{order.email}</strong>
                 </>
               ) : (
                 <>Your pahadi order is confirmed and being packed.</>
@@ -1023,6 +1022,9 @@ const Checkout = () => {
                             </option>
                           ))}
                         </select>
+                        {errors.state && (
+                          <em className="checkout-error">{errors.state}</em>
+                        )}
                       </label>
                       <label className="checkout-field">
                         <span>Pincode</span>

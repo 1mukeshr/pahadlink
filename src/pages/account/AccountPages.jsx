@@ -233,6 +233,7 @@ export const OrdersPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeOrderId, setActiveOrderId] = useState(null)
+  const [showAllItems, setShowAllItems] = useState(false)
   const [syncedAt, setSyncedAt] = useState(null)
 
   const loadOrders = useCallback(async ({ silent = false } = {}) => {
@@ -314,13 +315,17 @@ export const OrdersPage = () => {
     (sum, item) => sum + (item.qty || 1),
     0
   )
+  const visibleItems = showAllItems ? activeItems : activeItems.slice(0, 2)
+  const hiddenItemCount = Math.max(0, activeItems.length - 2)
 
   const openOrderPopup = (orderId) => {
+    setShowAllItems(false)
     setActiveOrderId(orderId)
   }
 
   const closeOrderPopup = () => {
     setActiveOrderId(null)
+    setShowAllItems(false)
   }
 
   return (
@@ -396,7 +401,7 @@ export const OrdersPage = () => {
               <ul className="orders-list">
                 {orders.map((order) => {
                   const items = order.items || []
-                  const preview = items.slice(0, 3)
+                  const preview = items.slice(0, 2)
                   const extra = Math.max(0, items.length - preview.length)
                   const itemCount = items.reduce(
                     (sum, item) => sum + (item.qty || 1),
@@ -405,84 +410,108 @@ export const OrdersPage = () => {
 
                   return (
                     <li key={order.apiId || order.id} className="order-card">
-                      <button
-                        type="button"
-                        className="order-card__hit"
-                        onClick={() => openOrderPopup(order.id)}
-                      >
-                        <div className="order-card__main">
-                          <div className="order-card__thumbs" aria-hidden="true">
-                            {preview.map((item, idx) => {
-                              const thumb = resolveItemImage(item)
-                              return thumb ? (
-                                <img
-                                  key={`${order.id}-thumb-${item.id || idx}`}
-                                  src={thumb}
-                                  alt=""
-                                  loading="lazy"
-                                  decoding="async"
-                                  style={{ zIndex: preview.length - idx }}
-                                />
-                              ) : (
-                                <span
-                                  key={`${order.id}-thumb-${idx}`}
-                                  className="order-card__thumb-fallback"
-                                  style={{ zIndex: preview.length - idx }}
-                                >
-                                  <PackageIcon size={14} />
-                                </span>
-                              )
-                            })}
-                            {extra > 0 && (
-                              <span className="order-card__thumb-more">
-                                +{extra}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="order-card__info">
-                            <div className="order-card__top">
-                              <div>
-                                <span className="order-card__id">{order.id}</span>
-                                <p className="order-card__date">
-                                  {formatDateTime(order.createdAt)}
-                                  {order.city
-                                    ? ` · ${order.city}${
-                                        order.state ? `, ${order.state}` : ''
-                                      }`
-                                    : ''}
-                                </p>
-                              </div>
+                      <div className="order-card__main">
+                        <button
+                          type="button"
+                          className="order-card__thumbs"
+                          aria-label={`Open order ${order.id}`}
+                          onClick={() => openOrderPopup(order.id)}
+                        >
+                          {preview.map((item, idx) => {
+                            const thumb = resolveItemImage(item)
+                            return thumb ? (
+                              <img
+                                key={`${order.id}-thumb-${item.id || idx}`}
+                                src={thumb}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                style={{ zIndex: preview.length - idx }}
+                              />
+                            ) : (
                               <span
-                                className={`order-card__status ${statusClass(
-                                  order.status
-                                )}`}
+                                key={`${order.id}-thumb-${idx}`}
+                                className="order-card__thumb-fallback"
+                                style={{ zIndex: preview.length - idx }}
                               >
-                                {statusText(order)}
+                                <PackageIcon size={14} />
                               </span>
-                            </div>
+                            )
+                          })}
+                          {extra > 0 && (
+                            <span className="order-card__thumb-more">
+                              +{extra}
+                            </span>
+                          )}
+                        </button>
 
-                            <ul className="order-card__names">
-                              {preview.map((item, idx) => (
-                                <li key={`${order.id}-name-${item.id || idx}`}>
+                        <div className="order-card__info">
+                          <button
+                            type="button"
+                            className="order-card__top"
+                            onClick={() => openOrderPopup(order.id)}
+                          >
+                            <div>
+                              <span className="order-card__id">{order.id}</span>
+                              <p className="order-card__date">
+                                {formatDateTime(order.createdAt)}
+                                {order.city
+                                  ? ` · ${order.city}${
+                                      order.state ? `, ${order.state}` : ''
+                                    }`
+                                  : ''}
+                              </p>
+                            </div>
+                            <span
+                              className={`order-card__status ${statusClass(
+                                order.status
+                              )}`}
+                            >
+                              {statusText(order)}
+                            </span>
+                          </button>
+
+                          <ul className="order-card__names">
+                            {preview.map((item, idx) => (
+                              <li key={`${order.id}-name-${item.id || idx}`}>
+                                <button
+                                  type="button"
+                                  className="order-card__name-btn"
+                                  onClick={() => openOrderPopup(order.id)}
+                                >
                                   {item.name}
                                   {item.size ? ` · ${item.size}` : ''}
                                   {(item.qty || 1) > 1
                                     ? ` ×${item.qty}`
                                     : ''}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                                </button>
+                              </li>
+                            ))}
+                            {extra > 0 && (
+                              <li>
+                                <button
+                                  type="button"
+                                  className="order-card__names-more"
+                                  onClick={() => openOrderPopup(order.id)}
+                                >
+                                  +{extra} more
+                                </button>
+                              </li>
+                            )}
+                          </ul>
                         </div>
+                      </div>
 
-                        <div className="order-card__foot">
-                          <span>
-                            {itemCount} item{itemCount === 1 ? '' : 's'}
-                          </span>
-                          <span>{paymentLabel(order.payment)}</span>
-                          <strong>{formatPrice(order.total)}</strong>
-                        </div>
+                      <button
+                        type="button"
+                        className="order-card__foot"
+                        onClick={() => openOrderPopup(order.id)}
+                      >
+                        <span>
+                          {itemCount} item{itemCount === 1 ? '' : 's'}
+                        </span>
+                        <span>{paymentLabel(order.payment)}</span>
+                        <strong>{formatPrice(order.total)}</strong>
                       </button>
                     </li>
                   )
@@ -538,7 +567,7 @@ export const OrdersPage = () => {
               <div className="orders-detail-popup__tracking-column">
                 <p className="orders-detail-popup__section-label">Items</p>
                 <ul className="orders-detail-popup__items">
-                  {activeItems.map((item, idx) => {
+                  {visibleItems.map((item, idx) => {
                     const img = resolveItemImage(item)
                     return (
                       <li key={`${activeOrder.id}-popup-${item.id || idx}`}>
@@ -567,6 +596,19 @@ export const OrdersPage = () => {
                       </li>
                     )
                   })}
+                  {hiddenItemCount > 0 && (
+                    <li className="orders-detail-popup__more-row">
+                      <button
+                        type="button"
+                        className="orders-detail-popup__more"
+                        onClick={() => setShowAllItems((open) => !open)}
+                      >
+                        {showAllItems
+                          ? 'Show less'
+                          : `+${hiddenItemCount} more`}
+                      </button>
+                    </li>
+                  )}
                 </ul>
 
                 {activeOrder.status !== 'cancelled' && (

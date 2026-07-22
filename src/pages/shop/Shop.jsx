@@ -101,7 +101,10 @@ const ShopFilters = ({
   setDraftMin,
   setDraftMax,
 }) => {
-  const [openSections, setOpenSections] = useState({ category: true })
+  const [openSections, setOpenSections] = useState({
+    category: true,
+    collection: true,
+  })
 
   const activePreset = PRICE_PRESETS.find(
     (p) =>
@@ -681,9 +684,37 @@ const Shop = () => {
                 <div className="shop-toolbar">
                   <div className="shop-toolbar__left">
                     {chips.length > 0 && (
-                      <span className="shop-toolbar__active">
-                        {chips.length} filter{chips.length === 1 ? '' : 's'} on
-                      </span>
+                      <div className="shop-chips" aria-label="Active filters">
+                        {visibleChips.map((chip) => (
+                          <button
+                            key={chip.key}
+                            type="button"
+                            className="shop-chip"
+                            onClick={() => removeChip(chip.key)}
+                          >
+                            {chip.label}
+                            <CloseIcon size={12} />
+                          </button>
+                        ))}
+                        {hiddenChipCount > 0 && (
+                          <button
+                            type="button"
+                            className="shop-chip shop-chip--more"
+                            aria-haspopup="dialog"
+                            aria-expanded={chipsOpen}
+                            onClick={() => setChipsOpen(true)}
+                          >
+                            +{hiddenChipCount} more
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="shop-chips__clear"
+                          onClick={clearAll}
+                        >
+                          Clear all
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -698,7 +729,7 @@ const Shop = () => {
                     </button>
 
                     <label className="shop-toolbar__sort">
-                      <span>Sort by</span>
+                      <span className="shop-toolbar__sort-label">Sort</span>
                       <select
                         value={filters.sort}
                         onChange={(e) => setParam('sort', e.target.value)}
@@ -713,40 +744,6 @@ const Shop = () => {
                     </label>
                   </div>
                 </div>
-
-                {chips.length > 0 && (
-                  <div className="shop-chips" aria-label="Active filters">
-                    {visibleChips.map((chip) => (
-                      <button
-                        key={chip.key}
-                        type="button"
-                        className="shop-chip"
-                        onClick={() => removeChip(chip.key)}
-                      >
-                        {chip.label}
-                        <CloseIcon size={12} />
-                      </button>
-                    ))}
-                    {hiddenChipCount > 0 && (
-                      <button
-                        type="button"
-                        className="shop-chip shop-chip--more"
-                        aria-haspopup="dialog"
-                        aria-expanded={chipsOpen}
-                        onClick={() => setChipsOpen(true)}
-                      >
-                        +{hiddenChipCount} more
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="shop-chips__clear"
-                      onClick={clearAll}
-                    >
-                      Clear all
-                    </button>
-                  </div>
-                )}
 
                 <div
                   className={`shop-results${filtering ? ' is-loading' : ''}`}

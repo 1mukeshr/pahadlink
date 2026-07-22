@@ -24,7 +24,9 @@ const AccountPage = lazy(() =>
 const OrdersPage = lazy(() =>
   import('../pages/account/AccountPages').then((m) => ({ default: m.OrdersPage }))
 )
+const AdminPortal = lazy(() => import('../admin/AdminPortal'))
 const AdminPage = lazy(() => import('../admin/AdminPage'))
+const AdminOrdersPage = lazy(() => import('../admin/AdminOrdersPage'))
 const LeadsPage = lazy(() => import('../admin/LeadsPage'))
 const SellerPage = lazy(() => import('../admin/SellerPage'))
 const Contact = lazy(() => import('../pages/Contact'))
@@ -79,18 +81,14 @@ export default function AppRoutes() {
             path="/admin"
             element={
               <ProtectedRoute roles={['admin']}>
-                <AdminPage />
+                <AdminPortal />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/admin/leads"
-            element={
-              <ProtectedRoute roles={['admin']}>
-                <LeadsPage />
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route index element={<AdminPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="leads" element={<LeadsPage />} />
+          </Route>
           <Route
             path="/seller"
             element={

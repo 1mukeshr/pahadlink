@@ -177,18 +177,22 @@ const ProductCard = ({ product, preferredSize }) => {
             </select>
           </span>
 
-          <div className="product-card__qty">
+          <div className="product-card__qty" role="group" aria-label="Quantity">
             <button
               type="button"
+              className="product-card__qty-btn"
               aria-label="Decrease quantity"
-              disabled={!canAdd}
+              disabled={!canAdd || qty <= 1}
               onClick={() => setQty((q) => Math.max(1, q - 1))}
             >
               −
             </button>
-            <span>{qty}</span>
+            <span className="product-card__qty-value" aria-live="polite">
+              {qty}
+            </span>
             <button
               type="button"
+              className="product-card__qty-btn"
               aria-label="Increase quantity"
               disabled={!canAdd || qty >= maxQty}
               onClick={() => setQty((q) => Math.min(maxQty, q + 1))}

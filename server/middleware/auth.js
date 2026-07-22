@@ -2,7 +2,21 @@ import jwt from 'jsonwebtoken'
 import { ROLES } from '../models/User.js'
 import { users } from '../services/users.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'pahadlink-dev-secret-change-me'
+const DEV_JWT_FALLBACK = 'pahadlink-dev-secret-change-me'
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  (process.env.NODE_ENV === 'production' ? '' : DEV_JWT_FALLBACK)
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is required when NODE_ENV=production')
+}
+
+if (
+  process.env.NODE_ENV === 'production' &&
+  JWT_SECRET === DEV_JWT_FALLBACK
+) {
+  throw new Error('Refusing to start with the default JWT_SECRET in production')
+}
 
 export function signToken(user) {
   const id = user._id?.toString?.() || user.id

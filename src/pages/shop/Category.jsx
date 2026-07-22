@@ -73,14 +73,16 @@ const CategoryPage = () => {
             )}
 
             <div className="category-hero__head">
-              <Breadcrumb
-                items={breadcrumbItems}
-                className="category-hero__breadcrumb"
-              />
               <h1 id="category-hero-title">{category.name}</h1>
             </div>
           </div>
         </section>
+
+        <div className="breadcrumb-bar">
+          <div className="container">
+            <Breadcrumb items={breadcrumbItems} />
+          </div>
+        </div>
 
         <section
           id="category-products"

@@ -10,6 +10,17 @@ import {
   updateLead,
 } from '../services/crmService'
 import AdminLayout from './AdminLayout'
+import {
+  StatusDonut,
+  OrdersBarChart,
+  HorizontalBars,
+  FunnelChart,
+  KpiSpark,
+  buildLeadPeriodSeries,
+  buildSourceSeries,
+  PERIOD_OPTIONS,
+  periodRangeHint,
+} from './AdminCharts'
 
 const STATUS_LABELS = {
   new: 'New',
@@ -19,6 +30,14 @@ const STATUS_LABELS = {
   lost: 'Lost',
 }
 
+const STATUS_COLORS = {
+  new: '#2f6fa8',
+  contacted: '#5b6fd4',
+  interested: '#b86a12',
+  converted: '#0a4f33',
+  lost: '#c0394f',
+}
+
 const SOURCE_LABELS = {
   website: 'Website',
   phone: 'Phone',
@@ -26,6 +45,15 @@ const SOURCE_LABELS = {
   referral: 'Referral',
   social: 'Social',
   other: 'Other',
+}
+
+const SOURCE_COLORS = {
+  website: '#0a4f33',
+  phone: '#2f6fa8',
+  whatsapp: '#127048',
+  referral: '#b86a12',
+  social: '#5b6fd4',
+  other: '#6b8075',
 }
 
 const emptyForm = {
@@ -52,8 +80,9 @@ const formatDate = (iso) => {
   }
 }
 
-export default function LeadsDesk() {
+export default function LeadsDesk({ bare = false }) {
   const [leads, setLeads] = useState([])
+  const [allLeads, setAllLeads] = useState([])
   const [stats, setStats] = useState(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [query, setQuery] = useState('')
@@ -67,6 +96,8 @@ export default function LeadsDesk() {
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState('')
   const [noteDrafts, setNoteDrafts] = useState({})
+  const [period, setPeriod] = useState('week')
+  const [updatedAt, setUpdatedAt] = useState(null)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 320)
@@ -77,15 +108,18 @@ export default function LeadsDesk() {
     setLoading(true)
     setError('')
     try {
-      const [nextLeads, nextStats] = await Promise.all([
+      const [nextLeads, analytics, nextStats] = await Promise.all([
         fetchLeads({
           status: statusFilter || undefined,
           q: debouncedQuery || undefined,
         }),
+        fetchLeads({}),
         fetchCrmStats(),
       ])
       setLeads(nextLeads)
+      setAllLeads(analytics)
       setStats(nextStats)
+      setUpdatedAt(new Date())
     } catch (err) {
       setError(err.message || 'Could not load leads')
     } finally {
@@ -99,6 +133,59 @@ export default function LeadsDesk() {
 
   const statusCounts = useMemo(() => stats?.byStatus || {}, [stats])
 
+  const leadTrend = useMemo(
+    () => buildLeadPeriodSeries(allLeads, period),
+    [allLeads, period]
+  )
+  const rangeHint = periodRangeHint(period)
+  const periodLeads = leadTrend.reduce((s, d) => s + d.value, 0)
+
+  const donutSegments = useMemo(
+    () =>
+      CRM_STATUSES.map((key) => ({
+        key,
+        label: STATUS_LABELS[key],
+        value: statusCounts[key] || 0,
+        color: STATUS_COLORS[key],
+      })),
+    [statusCounts]
+  )
+
+  const funnelStages = useMemo(
+    () =>
+      ['new', 'contacted', 'interested', 'converted'].map((key) => ({
+        key,
+        label: STATUS_LABELS[key],
+        value: statusCounts[key] || 0,
+        color: STATUS_COLORS[key],
+      })),
+    [statusCounts]
+  )
+
+  const sourceRows = useMemo(() => {
+    if (stats?.bySource) {
+      return CRM_SOURCES.map((key) => ({
+        key,
+        label: SOURCE_LABELS[key],
+        value: stats.bySource[key] || 0,
+        color: SOURCE_COLORS[key],
+      }))
+        .filter((r) => r.value > 0)
+        .sort((a, b) => b.value - a.value)
+    }
+    return buildSourceSeries(allLeads, SOURCE_LABELS).map((row) => ({
+      ...row,
+      color: SOURCE_COLORS[row.key] || SOURCE_COLORS.other,
+    }))
+  }, [stats, allLeads])
+
+  const conversionRate = useMemo(() => {
+    const total = stats?.leads || 0
+    const converted = statusCounts.converted || 0
+    if (!total) return 0
+    return Math.round((converted / total) * 100)
+  }, [stats, statusCounts])
+
   const onCreate = async (e) => {
     e.preventDefault()
     if (!form.name.trim()) {
@@ -108,13 +195,11 @@ export default function LeadsDesk() {
     setSaving(true)
     setMessage('')
     try {
-      const lead = await createLead(form)
-      setLeads((prev) => [lead, ...prev])
+      await createLead(form)
       setForm(emptyForm)
       setShowForm(false)
       setMessage('Lead added')
-      const nextStats = await fetchCrmStats()
-      setStats(nextStats)
+      await load()
     } catch (err) {
       setMessage(err.message || 'Could not create lead')
     } finally {
@@ -128,6 +213,7 @@ export default function LeadsDesk() {
     try {
       const lead = await updateLead(id, { status })
       setLeads((prev) => prev.map((row) => (row.id === id ? lead : row)))
+      setAllLeads((prev) => prev.map((row) => (row.id === id ? lead : row)))
       const nextStats = await fetchCrmStats()
       setStats(nextStats)
     } catch (err) {
@@ -160,6 +246,7 @@ export default function LeadsDesk() {
     try {
       await deleteLead(id)
       setLeads((prev) => prev.filter((row) => row.id !== id))
+      setAllLeads((prev) => prev.filter((row) => row.id !== id))
       if (expandedId === id) setExpandedId('')
       setMessage('Lead deleted')
       const nextStats = await fetchCrmStats()
@@ -171,15 +258,35 @@ export default function LeadsDesk() {
     }
   }
 
-  return (
-    <AdminLayout mode="admin">
+  const desk = (
       <div className="admin-desk">
         <header className="admin-head">
           <div className="admin-head__copy">
             <h1>Leads</h1>
-            <p>Track website enquiries and CRM contacts.</p>
           </div>
           <div className="admin-head__actions">
+            <div className="admin-period" role="group" aria-label="Time range">
+              {PERIOD_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  className={`admin-period__btn${period === opt.key ? ' is-active' : ''}`}
+                  onClick={() => setPeriod(opt.key)}
+                  aria-pressed={period === opt.key}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {updatedAt && (
+              <span className="admin-head__meta" title={updatedAt.toLocaleString('en-IN')}>
+                Updated{' '}
+                {updatedAt.toLocaleTimeString('en-IN', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+              </span>
+            )}
             <button
               type="button"
               className="admin-btn admin-btn--ghost"
@@ -199,7 +306,7 @@ export default function LeadsDesk() {
         </header>
 
         {stats && (
-          <div className="admin-kpi" aria-label="Lead metrics">
+          <div className="admin-kpi admin-kpi--leads" aria-label="Lead metrics">
             <button
               type="button"
               className={`admin-kpi__card admin-kpi__card--click${
@@ -207,28 +314,116 @@ export default function LeadsDesk() {
               }`}
               onClick={() => setStatusFilter('')}
             >
-              <span>Total leads</span>
+              <div className="admin-kpi__top">
+                <span>Total leads</span>
+                <KpiSpark
+                  values={leadTrend.map((d) => d.value)}
+                  labels={leadTrend.map((d) => d.label)}
+                />
+              </div>
               <strong>{stats.leads}</strong>
-              <em>{stats.customers} customers</em>
+              <em>
+                {periodLeads} in {rangeHint.toLowerCase()}
+              </em>
             </button>
-            {CRM_STATUSES.map((status) => (
-              <button
-                key={status}
-                type="button"
-                className={`admin-kpi__card admin-kpi__card--click${
-                  statusFilter === status ? ' admin-kpi__card--active' : ''
-                }`}
-                onClick={() =>
-                  setStatusFilter((cur) => (cur === status ? '' : status))
-                }
-              >
-                <span>{STATUS_LABELS[status]}</span>
-                <strong>{statusCounts[status] || 0}</strong>
-                <em>Filter list</em>
-              </button>
-            ))}
+            <article className="admin-kpi__card admin-kpi__card--accent">
+              <div className="admin-kpi__top">
+                <span>Conversion</span>
+                <KpiSpark
+                  values={leadTrend.map((d) => d.value)}
+                  labels={leadTrend.map((d) => d.label)}
+                  tone="light"
+                />
+              </div>
+              <strong>{conversionRate}%</strong>
+              <em>
+                {statusCounts.converted || 0} of {stats.leads} leads
+              </em>
+            </article>
+            <button
+              type="button"
+              className={`admin-kpi__card admin-kpi__card--click admin-kpi__card--warn${
+                statusFilter === 'new' ? ' admin-kpi__card--active' : ''
+              }`}
+              onClick={() =>
+                setStatusFilter((cur) => (cur === 'new' ? '' : 'new'))
+              }
+            >
+              <div className="admin-kpi__top">
+                <span>New</span>
+              </div>
+              <strong>{statusCounts.new || 0}</strong>
+              <em>Awaiting first contact</em>
+            </button>
+            <button
+              type="button"
+              className={`admin-kpi__card admin-kpi__card--click admin-kpi__card--ship${
+                statusFilter === 'interested' ? ' admin-kpi__card--active' : ''
+              }`}
+              onClick={() =>
+                setStatusFilter((cur) =>
+                  cur === 'interested' ? '' : 'interested'
+                )
+              }
+            >
+              <div className="admin-kpi__top">
+                <span>Interested</span>
+              </div>
+              <strong>{statusCounts.interested || 0}</strong>
+              <em>Warm pipeline</em>
+            </button>
           </div>
         )}
+
+        <div className="admin-dash admin-dash--graphs">
+          <section className="admin-panel-card admin-panel-card--wide">
+            <header className="admin-panel-card__head">
+              <h2>Lead volume</h2>
+              <p>{rangeHint}</p>
+            </header>
+            <OrdersBarChart series={leadTrend} period={period} />
+          </section>
+
+          <section className="admin-panel-card admin-panel-card--side">
+            <header className="admin-panel-card__head">
+              <h2>Sources</h2>
+              <p>Where leads come from</p>
+            </header>
+            <HorizontalBars
+              rows={sourceRows}
+              valueFormat={(n) => `${n}`}
+              emptyLabel="No source data yet"
+              maxItems={5}
+            />
+          </section>
+
+          <section className="admin-panel-card admin-panel-card--half">
+            <header className="admin-panel-card__head">
+              <h2>Status</h2>
+              <p>Tap to filter</p>
+            </header>
+            <StatusDonut
+              segments={donutSegments}
+              size={152}
+              onSelect={(key) =>
+                setStatusFilter((cur) => (cur === key ? '' : key))
+              }
+            />
+          </section>
+
+          <section className="admin-panel-card admin-panel-card--half">
+            <header className="admin-panel-card__head">
+              <h2>Funnel</h2>
+              <p>New → converted</p>
+            </header>
+            <FunnelChart
+              stages={funnelStages}
+              onSelect={(key) =>
+                setStatusFilter((cur) => (cur === key ? '' : key))
+              }
+            />
+          </section>
+        </div>
 
         {showForm && (
           <form className="admin-lead-form admin-panel-card" onSubmit={onCreate}>
@@ -514,6 +709,8 @@ export default function LeadsDesk() {
           )}
         </section>
       </div>
-    </AdminLayout>
   )
+
+  if (bare) return desk
+  return <AdminLayout mode="admin">{desk}</AdminLayout>
 }
