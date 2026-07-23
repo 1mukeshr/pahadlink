@@ -1,5 +1,8 @@
 {
-  "apiUrl": "https://gospel-lawn-yukon-list.trycloudflare.com/api",
+  "apiUrl": "https://twin-celebrate-salon-vienna.trycloudflare.com/api",
+  "apiUrls": [
+    "https://pahadlink-api.onrender.com/api"
+  ],
   "firebase": {
     "apiKey": "AIzaSyCa1V4GXz7fpGHQ_0gKNHkW5qQfVnWqeok",
     "authDomain": "pahadlink-56803.firebaseapp.com",
