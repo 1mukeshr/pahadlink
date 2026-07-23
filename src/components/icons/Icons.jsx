@@ -632,6 +632,45 @@ export const CardPayIcon = ({ size = 24, className = '' }) => (
   </svg>
 )
 
+/** Net banking - building / bank */
+export const NetBankingIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    aria-hidden="true"
+    fill="none"
+  >
+    <path
+      d="M3.5 10.2 12 4.5l8.5 5.7"
+      stroke="#0D47A1"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M5.2 10.2V18.5h13.6V10.2" stroke="#0D47A1" strokeWidth="1.5" />
+    <path d="M3.2 18.5h17.6" stroke="#0D47A1" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M8 13.2v3.2M12 13.2v3.2M16 13.2v3.2" stroke="#1976D2" strokeWidth="1.4" strokeLinecap="round" />
+  </svg>
+)
+
+/** Wallets - Google Pay / Paytm style purse */
+export const WalletPayIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    aria-hidden="true"
+    fill="none"
+  >
+    <rect x="2.5" y="6" width="19" height="12.5" rx="2.2" stroke="#E65100" strokeWidth="1.5" />
+    <path d="M2.5 9.4h19" stroke="#EF6C00" strokeWidth="1.5" />
+    <circle cx="16.6" cy="14.2" r="1.55" fill="#FB8C00" />
+  </svg>
+)
+
 export const GridIcon = (props) => (
   <Icon {...props}>
     <rect x="3" y="3" width="7" height="7" />

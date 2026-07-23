@@ -86,9 +86,11 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['cod', 'upi', 'card'],
+      enum: ['cod', 'upi', 'card', 'netbanking', 'wallet', 'razorpay'],
       default: 'cod',
     },
+    razorpayOrderId: { type: String, default: '', trim: true },
+    razorpayPaymentId: { type: String, default: '', trim: true },
     shippingAddress: {
       line1: { type: String, default: '' },
       city: { type: String, default: '' },
@@ -139,6 +141,8 @@ orderSchema.methods.toSafeJSON = function toSafeJSON() {
     status: this.status,
     paymentStatus: this.paymentStatus,
     paymentMethod: this.paymentMethod,
+    razorpayOrderId: this.razorpayOrderId || '',
+    razorpayPaymentId: this.razorpayPaymentId || '',
     shippingAddress: this.shippingAddress,
     trackingNumber: this.trackingNumber,
     courier: this.courier,

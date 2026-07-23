@@ -63,8 +63,15 @@ function addressBlock(order) {
 }
 
 function paymentLabel(method) {
-  const map = { cod: 'Cash on Delivery', upi: 'UPI', card: 'Card' }
-  return map[method] || method || '—'
+  const map = {
+    cod: 'Cash on Delivery',
+    upi: 'UPI',
+    card: 'Card',
+    netbanking: 'Net Banking',
+    wallet: 'Wallet',
+    razorpay: 'Online payment',
+  }
+  return map[String(method || '').toLowerCase()] || method || '—'
 }
 
 export function orderConfirmationEmail(order) {

@@ -10,6 +10,8 @@ import couponRoutes from './routes/coupons.js'
 import crmRoutes from './routes/crm.js'
 import contactRoutes from './routes/contact.js'
 import reviewRoutes from './routes/reviews.js'
+import paymentRoutes from './routes/payments.js'
+import { isRazorpayConfigured } from './services/razorpay.js'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -81,6 +83,7 @@ function healthPayload() {
     mongo: mongoOk ? 'connected' : usingFile ? 'file-fallback' : 'disconnected',
     ordersReady: mongoOk,
     authReady,
+    paymentsReady: isRazorpayConfigured(),
     time: new Date().toISOString(),
   }
 }
@@ -100,6 +103,7 @@ app.use('/api/coupons', couponRoutes)
 app.use('/api/crm', crmRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/reviews', reviewRoutes)
+app.use('/api/payments', paymentRoutes)
 
 app.use((err, _req, res, next) => {
   void next

@@ -1,6 +1,7 @@
 {
-  "apiUrl": "https://pahadlink-api.onrender.com/api",
+  "apiUrl": "https://twin-celebrate-salon-vienna.trycloudflare.com/api",
   "apiUrls": [
+    "https://twin-celebrate-salon-vienna.trycloudflare.com/api",
     "https://pahadlink-api.onrender.com/api"
   ],
   "firebase": {

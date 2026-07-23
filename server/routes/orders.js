@@ -29,7 +29,7 @@ import { MAX_QTY_PER_ITEM_PER_CUSTOMER } from '../config/constants.js'
 
 const router = Router()
 
-const PAYMENT_METHODS = ['cod', 'upi', 'card']
+const PAYMENT_METHODS = ['cod', 'upi', 'card', 'netbanking', 'wallet', 'razorpay']
 
 /** Seller can see pending COD and move them into fulfilment */
 const SELLER_STATUSES = [

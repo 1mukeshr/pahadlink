@@ -12,6 +12,8 @@ import {
   CodIcon,
   UpiIcon,
   CardPayIcon,
+  NetBankingIcon,
+  WalletPayIcon,
   ChevronDownIcon,
 } from '../../components/icons'
 import { ROUTES, STORAGE, productPath, MAX_QTY_PER_ITEM_PER_CUSTOMER } from '../../config'
@@ -24,6 +26,11 @@ import {
   mapApiOrderToUi,
   fetchMyOrders,
 } from '../../services/orderService'
+import {
+  fetchPaymentStatus,
+  isOnlinePaymentMethod,
+  openRazorpayCheckout,
+} from '../../services/paymentService'
 import {
   ADDRESSES_EVENT,
   INDIA_STATES,
@@ -50,27 +57,47 @@ const COLLAPSED_BAG_ITEM_COUNT = 2
 
 const STATES = INDIA_STATES
 
+/** House-of-Himalayas style: cards / UPI / wallets online + COD */
 const PAYMENTS = [
   {
     id: 'upi',
     title: 'UPI',
-    short: 'Pay by any UPI app',
-    desc: 'Google Pay, PhonePe, Paytm and more.',
+    short: 'Google Pay, PhonePe, Paytm',
+    desc: 'Pay instantly with any UPI app.',
     Icon: UpiIcon,
+    online: true,
   },
   {
     id: 'card',
-    title: 'Credit / Debit / ATM Card',
-    short: 'Add and secure cards as per RBI guidelines',
-    desc: 'Visa, Mastercard, RuPay and more.',
+    title: 'Credit / Debit Card',
+    short: 'Visa, Mastercard, RuPay',
+    desc: 'Secure card payment as per RBI guidelines.',
     Icon: CardPayIcon,
+    online: true,
+  },
+  {
+    id: 'netbanking',
+    title: 'Net Banking',
+    short: 'All major Indian banks',
+    desc: 'Pay directly from your bank account.',
+    Icon: NetBankingIcon,
+    online: true,
+  },
+  {
+    id: 'wallet',
+    title: 'Wallets',
+    short: 'Paytm, Amazon Pay and more',
+    desc: 'Pay with your preferred wallet balance.',
+    Icon: WalletPayIcon,
+    online: true,
   },
   {
     id: 'cod',
     title: 'Cash on Delivery',
     short: 'Pay when your order arrives',
-    desc: 'Available for most pincodes.',
+    desc: 'Cash or UPI accepted at delivery for most pincodes.',
     Icon: CodIcon,
+    online: false,
   },
 ]
 
@@ -211,6 +238,7 @@ const Checkout = () => {
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [showAllBagItems, setShowAllBagItems] = useState(false)
+  const [razorpayReady, setRazorpayReady] = useState(false)
 
   const hiddenBagItemCount = Math.max(0, cart.length - COLLAPSED_BAG_ITEM_COUNT)
   const visibleBagItems = showAllBagItems
@@ -329,6 +357,20 @@ const Checkout = () => {
     setOrder(null)
     navigate(ROUTES.SHOP, { replace: true })
   }, [navigate])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPaymentStatus()
+      .then((data) => {
+        if (!cancelled) setRazorpayReady(Boolean(data?.razorpay))
+      })
+      .catch(() => {
+        if (!cancelled) setRazorpayReady(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!order) return undefined
@@ -496,6 +538,14 @@ const Checkout = () => {
     setPlacing(true)
     setPlaceError('')
 
+    if (isOnlinePaymentMethod(payment) && !razorpayReady) {
+      setPlaceError(
+        'Online payment is not set up yet. Choose Cash on Delivery, or add Razorpay keys on the server.'
+      )
+      setPlacing(false)
+      return
+    }
+
     const localId = makeOrderId()
     const placed = {
       id: localId,
@@ -553,12 +603,25 @@ const Checkout = () => {
         })),
       })
 
+      let finalApiOrder = apiOrder
+
+      if (isOnlinePaymentMethod(payment)) {
+        finalApiOrder = await openRazorpayCheckout({
+          order: apiOrder,
+          customer: {
+            name: placed.name,
+            email: placed.email,
+            phone: placed.phone,
+          },
+          preference: payment,
+        })
+      }
+
       let saved = placed
-      if (apiOrder?.orderNumber || apiOrder?.id) {
+      if (finalApiOrder?.orderNumber || finalApiOrder?.id) {
         saved = {
-          ...mapApiOrderToUi(apiOrder),
-          // Keep cart images when API has no image URLs
-          items: (mapApiOrderToUi(apiOrder).items || []).map((item, i) => ({
+          ...mapApiOrderToUi(finalApiOrder),
+          items: (mapApiOrderToUi(finalApiOrder).items || []).map((item, i) => ({
             ...item,
             image: item.image || placed.items[i]?.image || '',
           })),
@@ -1146,6 +1209,16 @@ const Checkout = () => {
 
                   <section className="checkout-summary__pay">
                     <h2>Payment Options</h2>
+                    <p className="checkout-pay-mode__intro">
+                      Choose UPI, card, net banking, wallet, or cash on delivery.
+                    </p>
+                    <ul className="checkout-pay-brands" aria-label="Accepted payment brands">
+                      <li>Visa</li>
+                      <li>Mastercard</li>
+                      <li>RuPay</li>
+                      <li>UPI</li>
+                      <li>GPay</li>
+                    </ul>
                     <div
                       className="checkout-pay-mode"
                       role="radiogroup"
@@ -1273,12 +1346,18 @@ const Checkout = () => {
                     disabled={!canPlaceOrder}
                   >
                     {placing
-                      ? 'Placing order…'
-                      : `Place order · ${formatPrice(payable)}`}
+                      ? isOnlinePaymentMethod(payment)
+                        ? 'Opening secure payment…'
+                        : 'Placing order…'
+                      : isOnlinePaymentMethod(payment)
+                        ? `Pay ${formatPrice(payable)}`
+                        : `Place order · ${formatPrice(payable)}`}
                   </button>
                   <p className="checkout-summary__secure">
                     <ShieldIcon size={13} />
-                    PahadLink secure checkout
+                    {isOnlinePaymentMethod(payment)
+                      ? 'Secured by Razorpay'
+                      : 'PahadLink secure checkout'}
                     {payment
                       ? ` · ${PAYMENTS.find((p) => p.id === payment)?.title || 'Pay'}`
                       : ' · Select payment to continue'}
@@ -1295,7 +1374,13 @@ const Checkout = () => {
             <strong>{formatPrice(payable)}</strong>
           </div>
           <button type="button" disabled={!canPlaceOrder} onClick={placeOrder}>
-            {placing ? 'Placing…' : 'Place order'}
+            {placing
+              ? isOnlinePaymentMethod(payment)
+                ? 'Paying…'
+                : 'Placing…'
+              : isOnlinePaymentMethod(payment)
+                ? 'Pay now'
+                : 'Place order'}
           </button>
         </div>
       </main>

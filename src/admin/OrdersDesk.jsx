@@ -400,6 +400,8 @@ export default function OrdersDesk({
       cod: '#b86a12',
       upi: '#127048',
       card: '#5b6fd4',
+      netbanking: '#0d47a1',
+      wallet: '#e65100',
       other: '#6b8075',
     }
     return buildPaymentSeries(allOrders).map((row) => ({
