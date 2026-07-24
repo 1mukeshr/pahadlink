@@ -29,7 +29,7 @@ GitHub Pages is **static** - it cannot run Express or MongoDB. You need a hosted
 
 ### 2) Deploy API on Render (no Atlas required)
 
-1. Open [render.com/deploy?repo=https://github.com/1mukeshr/pahadlink](https://render.com/deploy?repo=https://github.com/1mukeshr/pahadlink)  
+1. Open [render.com/deploy?repo=https://github.com/1mukeshr/pahadlink-harvest](https://render.com/deploy?repo=https://github.com/1mukeshr/pahadlink-harvest)  
    or Render → **New** → **Blueprint** → this repo (`render.yaml`)
 2. Set `ADMIN_PASSWORD` (and optionally `MONGODB_URI` for Atlas).  
    Default blueprint uses **file DB fallback** so auth works without MongoDB Atlas.
@@ -43,7 +43,7 @@ GitHub Pages is **static** - it cannot run Express or MongoDB. You need a hosted
 3. Optionally set `public/runtime-config.json` → `{ "apiUrl": "https://YOUR-SERVICE.onrender.com/api" }`
 4. Push to `main` (or re-run **Deploy GitHub Pages**)
 
-Live site: https://1mukeshr.github.io/pahadlink/
+Live site: https://1mukeshr.github.io/pahadlink-harvest/
 
 Auth smoke test:
 

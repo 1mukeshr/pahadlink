@@ -1,4 +1,4 @@
-# One-click: https://render.com/deploy?repo=https://github.com/1mukeshr/pahadlink
+# One-click: https://render.com/deploy?repo=https://github.com/1mukeshr/pahadlink-harvest
 # Or: Render → New → Blueprint → connect this repo
 #
 # Required env on Render:
@@ -6,6 +6,7 @@
 #   ADMIN_PASSWORD = (your admin password)
 #
 # After deploy, copy the service URL and keep public/runtime-config.json apiUrl in sync.
+# Frontend (GitHub Pages): https://1mukeshr.github.io/pahadlink-harvest/
 services:
   - type: web
     name: pahadlink-api
@@ -33,7 +34,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        value: https://1mukeshr.github.io/pahadlink
+        value: https://1mukeshr.github.io/pahadlink-harvest
       - key: ADMIN_EMAIL
         value: admin@pahadlink.com
       - key: ADMIN_USERNAME

@@ -107,12 +107,23 @@ async function probeApiHealth(apiBase) {
 
 async function pickHealthyApiUrl(candidates) {
   if (!candidates.length) return ''
-  for (const url of candidates) {
-    // Prefer first reachable host so Pages can fall back if one deploy is asleep
-    if (await probeApiHealth(url)) return url
+  // Don't block first paint on a sleeping free-tier API — use first URL now,
+  // then upgrade if a healthier candidate answers quickly.
+  const preferred = candidates[0]
+  try {
+    const winner = await Promise.race([
+      (async () => {
+        for (const url of candidates) {
+          if (await probeApiHealth(url)) return url
+        }
+        return preferred
+      })(),
+      new Promise((resolve) => window.setTimeout(() => resolve(preferred), 2500)),
+    ])
+    return winner || preferred
+  } catch {
+    return preferred
   }
-  // Keep first configured URL so errors still show a concrete host
-  return candidates[0]
 }
 
 function pickFirebase(data) {
