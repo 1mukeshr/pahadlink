@@ -47,14 +47,11 @@ function isEphemeralTunnelUrl(url) {
 
 const fromFileApi = normalizeApiUrl(existing.apiUrl)
 const fromEnvApi = normalizeApiUrl(process.env.VITE_API_URL)
-const rawApiUrl = fromFileApi || fromEnvApi
-const apiUrl =
-  rawApiUrl && !isEphemeralTunnelUrl(rawApiUrl) ? rawApiUrl : ''
+// Allow temporary tunnels in runtime-config while Render is offline
+const apiUrl = fromFileApi || fromEnvApi
 
 const apiUrls = Array.isArray(existing.apiUrls)
-  ? existing.apiUrls
-      .map(normalizeApiUrl)
-      .filter((u) => u && !isEphemeralTunnelUrl(u))
+  ? existing.apiUrls.map(normalizeApiUrl).filter(Boolean)
   : []
 if (apiUrl && !apiUrls.includes(apiUrl)) apiUrls.unshift(apiUrl)
 
