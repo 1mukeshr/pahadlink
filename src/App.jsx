@@ -4,7 +4,7 @@
  * Config: src/config/index.js
  *
  * HashRouter works reliably on GitHub project Pages
- * (https://1mukeshr.github.io/pahadlink/#/...).
+ * (https://1mukeshr.github.io/pahadlink-harvest/#/...).
  *
  * Admin/seller console lives in src/admin/ with its own CSS/layout —
  * storefront chrome is hidden on those routes.

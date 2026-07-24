@@ -5,8 +5,12 @@ import react from '@vitejs/plugin-react'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Project Pages URL: https://1mukeshr.github.io/pahadlink/
-const PAGES_BASE = '/pahadlink/'
+// GitHub project Pages: https://1mukeshr.github.io/pahadlink-harvest/
+const PAGES_BASE = (
+  process.env.VITE_PAGES_BASE ||
+  process.env.PAGES_BASE ||
+  '/pahadlink-harvest/'
+).replace(/\/?$/, '/')
 
 export default defineConfig(({ command }) => ({
   // Absolute base avoids broken asset URLs on GitHub Pages.
