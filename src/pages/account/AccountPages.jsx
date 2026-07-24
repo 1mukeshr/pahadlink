@@ -6,12 +6,16 @@ import {
   ArrowRightIcon,
   CheckIcon,
   CloseIcon,
+  CodIcon,
   LogOutIcon,
   MailIcon,
   PackageIcon,
   TruckIcon,
+  UpiIcon,
   UserIcon,
+  DownloadIcon,
 } from '../../components/icons'
+import { downloadOrderInvoice } from '../../components/orders/OrderInvoice'
 import { ROUTES, ROLES } from '../../config'
 import { useAuth } from '../../context/AuthContext'
 import { resolveProductImage } from '../../data/siteData'
@@ -22,6 +26,7 @@ import {
   paymentStatusLabel,
   buildDeliveryActivity,
 } from '../../services/orderService'
+import { GST_RATE_PERCENT, buildGstBreakdown } from '../../data/gst'
 
 const statusClass = (status) => {
   const key = String(status || 'pending').toLowerCase()
@@ -65,10 +70,49 @@ const formatDateTime = (iso) => {
   }
 }
 
+/** Compact timeline stamp: Wed, 22 Jul · 2:30 pm */
+const formatTrackStamp = (iso) => {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const day = d.toLocaleDateString('en-IN', { weekday: 'short' })
+    const date = d.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+    })
+    const time = d.toLocaleTimeString('en-IN', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+    return `${day}, ${date} · ${time}`
+  } catch {
+    return ''
+  }
+}
+
 const paymentLabel = (id) => {
   if (id === 'upi') return 'UPI'
-  if (id === 'card') return 'Card'
+  if (id === 'cod') return 'Cash on delivery'
   return 'Cash on delivery'
+}
+
+const paymentIcon = (id) => {
+  if (id === 'upi') return UpiIcon
+  return CodIcon
+}
+
+const paymentTone = (order) => {
+  const pay = String(order?.paymentStatus || '').toLowerCase()
+  if (pay.includes('fail')) return 'is-failed'
+  if (
+    pay.includes('paid') ||
+    (order?.payment === 'cod' && order?.status === 'delivered')
+  ) {
+    return 'is-paid'
+  }
+  return 'is-pending'
 }
 
 const resolveItemImage = (item) => resolveProductImage(item)
@@ -234,6 +278,7 @@ export const OrdersPage = () => {
   const [error, setError] = useState('')
   const [activeOrderId, setActiveOrderId] = useState(null)
   const [showAllItems, setShowAllItems] = useState(false)
+  const [invoiceDownloading, setInvoiceDownloading] = useState(false)
   const [syncedAt, setSyncedAt] = useState(null)
 
   const loadOrders = useCallback(async ({ silent = false } = {}) => {
@@ -317,6 +362,8 @@ export const OrdersPage = () => {
   )
   const visibleItems = showAllItems ? activeItems : activeItems.slice(0, 2)
   const hiddenItemCount = Math.max(0, activeItems.length - 2)
+  const ActivePayIcon = paymentIcon(activeOrder?.payment)
+  const activePayTone = paymentTone(activeOrder)
 
   const openOrderPopup = (orderId) => {
     setShowAllItems(false)
@@ -571,16 +618,6 @@ export const OrdersPage = () => {
                     const img = resolveItemImage(item)
                     return (
                       <li key={`${activeOrder.id}-popup-${item.id || idx}`}>
-                        <div>
-                          <strong>{item.name}</strong>
-                          <span>
-                            {item.size ? `${item.size} · ` : ''}
-                            Qty {item.qty || 1}
-                          </span>
-                          <em className="orders-detail-popup__item-price">
-                            {formatPrice(item.price * (item.qty || 1))}
-                          </em>
-                        </div>
                         {img ? (
                           <img
                             src={img}
@@ -590,9 +627,21 @@ export const OrdersPage = () => {
                           />
                         ) : (
                           <span className="orders-detail-popup__fallback">
-                            <PackageIcon size={18} />
+                            <PackageIcon size={16} />
                           </span>
                         )}
+                        <div className="orders-detail-popup__item-copy">
+                          <div className="orders-detail-popup__item-row">
+                            <strong>{item.name}</strong>
+                            <span>
+                              {item.size ? `${item.size} · ` : ''}
+                              Qty {item.qty || 1}
+                            </span>
+                          </div>
+                          <em className="orders-detail-popup__item-price">
+                            {formatPrice(item.price * (item.qty || 1))}
+                          </em>
+                        </div>
                       </li>
                     )
                   })}
@@ -616,35 +665,62 @@ export const OrdersPage = () => {
                     className="orders-track"
                     aria-label="PahadLink delivery tracking"
                   >
+                    <header className="orders-track__head">
+                      <TruckIcon size={14} aria-hidden="true" />
+                      <span>Track package</span>
+                    </header>
                     <ol
                       className="orders-track__timeline"
                       aria-label="Order updates"
                     >
                       {activity.map((ev, idx) => {
                         const title =
-                          STATUS_LABELS[ev.status] || ev.note || 'Update'
+                          ev.label ||
+                          STATUS_LABELS[ev.status] ||
+                          'Update'
+                        const hint = String(ev.hint || '').trim()
                         const note = String(ev.note || '').trim()
-                        const showNote =
+                        const subtext =
+                          ev.isCurrent &&
                           note &&
-                          note.toLowerCase() !== title.toLowerCase()
-                        const isLast = idx === activity.length - 1
+                          note.toLowerCase() !== title.toLowerCase() &&
+                          note.toLowerCase() !== hint.toLowerCase()
+                            ? note
+                            : hint
+                        const stamp = formatTrackStamp(ev.at)
+                        const stateClass = ev.isUpcoming
+                          ? 'is-upcoming'
+                          : ev.isCurrent
+                            ? 'is-current is-latest'
+                            : 'is-past'
+                        const connectorFilled =
+                          !ev.isUpcoming && idx < activity.length - 1
                         return (
                           <li
                             key={`${ev.status}-${ev.at || idx}`}
-                            className={`${isLast ? 'is-latest' : 'is-past'}${
-                              ev.isCurrent || isLast ? ' is-current' : ''
+                            className={`${stateClass}${
+                              connectorFilled ? ' is-filled' : ''
                             }`}
                           >
-                            <span className="orders-track__timeline-dot">
-                              <CheckIcon size={10} aria-hidden="true" />
+                            <span
+                              className="orders-track__timeline-dot"
+                              aria-hidden="true"
+                            >
+                              {ev.isUpcoming ? null : (
+                                <CheckIcon size={9} />
+                              )}
                             </span>
-                            <div>
-                              <strong>{title}</strong>
-                              {showNote ? <em>{note}</em> : null}
-                              {ev.at ? (
-                                <time dateTime={ev.at}>
-                                  {formatDateTime(ev.at)}
-                                </time>
+                            <div className="orders-track__timeline-copy">
+                              <div className="orders-track__timeline-row">
+                                <strong>{title}</strong>
+                                {stamp ? (
+                                  <time dateTime={ev.at}>{stamp}</time>
+                                ) : null}
+                              </div>
+                              {subtext ? (
+                                <p className="orders-track__subtext">
+                                  {subtext}
+                                </p>
                               ) : null}
                             </div>
                           </li>
@@ -694,10 +770,22 @@ export const OrdersPage = () => {
                   </em>
                 </div>
 
-                <div className="orders-detail-popup__info-card">
-                  <span>Payment</span>
-                  <strong>{paymentLabel(activeOrder.payment)}</strong>
-                  <em>{paymentStatusLabel(activeOrder)}</em>
+                <div
+                  className={`orders-detail-popup__pay-card ${activePayTone}`}
+                >
+                  <span
+                    className="orders-detail-popup__pay-icon"
+                    aria-hidden="true"
+                  >
+                    <ActivePayIcon size={22} />
+                  </span>
+                  <div className="orders-detail-popup__pay-copy">
+                    <span>Payment</span>
+                    <strong>{paymentLabel(activeOrder.payment)}</strong>
+                  </div>
+                  <em className={activePayTone}>
+                    {paymentStatusLabel(activeOrder)}
+                  </em>
                 </div>
 
                 <p className="orders-detail-popup__section-label">
@@ -734,16 +822,82 @@ export const OrdersPage = () => {
                       <strong>-{formatPrice(activeOrder.discount)}</strong>
                     </div>
                   )}
+                  {(() => {
+                    const subtotal =
+                      itemsSubtotal(activeItems) ||
+                      Number(activeOrder.total || 0) -
+                        Number(activeOrder.shipping || 0) +
+                        Number(activeOrder.discount || 0)
+                    const shipping = Number(activeOrder.shipping || 0)
+                    const discount = Number(activeOrder.discount || 0)
+                    const taxableBase = Math.max(0, subtotal - discount + shipping)
+                    const fallback = buildGstBreakdown(taxableBase, {
+                      shippingState: activeOrder.state || '',
+                    })
+                    const gstType = activeOrder.gstType || fallback.gstType
+                    const cgst =
+                      activeOrder.cgstAmount != null
+                        ? Number(activeOrder.cgstAmount)
+                        : fallback.cgstAmount
+                    const sgst =
+                      activeOrder.sgstAmount != null
+                        ? Number(activeOrder.sgstAmount)
+                        : fallback.sgstAmount
+                    const igst =
+                      activeOrder.igstAmount != null
+                        ? Number(activeOrder.igstAmount)
+                        : fallback.igstAmount
+                    const ratePct =
+                      activeOrder.gstRate != null
+                        ? Math.round(Number(activeOrder.gstRate) * 1000) / 10
+                        : GST_RATE_PERCENT
+                    return gstType === 'igst' ? (
+                      <div>
+                        <span>IGST ({ratePct}%)</span>
+                        <strong>{formatPrice(igst)}</strong>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <span>CGST ({ratePct / 2}%)</span>
+                          <strong>{formatPrice(cgst)}</strong>
+                        </div>
+                        <div>
+                          <span>SGST ({ratePct / 2}%)</span>
+                          <strong>{formatPrice(sgst)}</strong>
+                        </div>
+                      </>
+                    )
+                  })()}
                   <div className="orders-detail-popup__total">
                     <span>
                       {activeOrder.paymentStatus === 'paid' ||
                       activeOrder.status === 'delivered'
                         ? 'Total amount'
-                        : 'Order total'}
+                        : 'Order total'}{' '}
+                      (incl. GST)
                     </span>
                     <strong>{formatPrice(activeOrder.total)}</strong>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  className="orders-detail-popup__invoice-link"
+                  disabled={invoiceDownloading}
+                  onClick={async () => {
+                    if (!activeOrder) return
+                    setInvoiceDownloading(true)
+                    try {
+                      await downloadOrderInvoice(activeOrder)
+                    } finally {
+                      setInvoiceDownloading(false)
+                    }
+                  }}
+                >
+                  <DownloadIcon size={14} />
+                  {invoiceDownloading ? 'Preparing PDF…' : 'Download PDF invoice'}
+                </button>
 
                 {activeOrder.review?.rating && (
                   <p className="orders-detail-popup__review">

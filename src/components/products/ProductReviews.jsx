@@ -19,7 +19,7 @@ const formatDate = (value) => {
 }
 
 /**
- * Flipkart-style compact ratings & reviews.
+ * PahadLink compact ratings & reviews.
  */
 const ProductReviews = ({ product, onSummaryChange }) => {
   const { user, isAuthenticated } = useAuth()

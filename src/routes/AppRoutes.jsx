@@ -25,8 +25,10 @@ const OrdersPage = lazy(() =>
   import('../pages/account/AccountPages').then((m) => ({ default: m.OrdersPage }))
 )
 const AdminPortal = lazy(() => import('../admin/AdminPortal'))
+const AdminLogin = lazy(() => import('../admin/AdminLogin'))
 const AdminPage = lazy(() => import('../admin/AdminPage'))
 const AdminOrdersPage = lazy(() => import('../admin/AdminOrdersPage'))
+const AdminInventoryPage = lazy(() => import('../admin/AdminInventoryPage'))
 const LeadsPage = lazy(() => import('../admin/LeadsPage'))
 const SellerPage = lazy(() => import('../admin/SellerPage'))
 const Contact = lazy(() => import('../pages/Contact'))
@@ -77,6 +79,7 @@ export default function AppRoutes() {
               </ProtectedRoute>
             }
           />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route
             path="/admin"
             element={
@@ -87,6 +90,7 @@ export default function AppRoutes() {
           >
             <Route index element={<AdminPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="inventory" element={<AdminInventoryPage />} />
             <Route path="leads" element={<LeadsPage />} />
           </Route>
           <Route

@@ -1,10 +1,11 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
+import mongoose from 'mongoose'
 import { ROLES } from '../models/User.js'
-import { users } from '../services/users.js'
+import { users, getAuthStoreMode } from '../services/users.js'
 import { protect, authorize, signToken } from '../middleware/auth.js'
-import { isFileDbMode } from '../config/db.js'
+import { isFileDbMode, connectDB } from '../config/db.js'
 import { PASSWORD_MIN_LENGTH } from '../config/constants.js'
 import { verifyFirebaseIdToken } from '../services/verifyFirebaseIdToken.js'
 import { sendMail } from '../services/mail.js'
@@ -15,12 +16,43 @@ function authResponse(user) {
   return {
     token: signToken(user),
     user: user.toSafeJSON(),
+    store: getAuthStoreMode(),
   }
 }
 
-/** POST /api/auth/register */
+/** Ensure Mongo (preferred) or file-store is ready before auth writes. */
+async function ensureAuthStore(res) {
+  let mode = getAuthStoreMode()
+  if (mode === 'mongo' || mode === 'file') return mode
+
+  try {
+    await connectDB()
+  } catch {
+    // connectDB already logs; fall through
+  }
+
+  mode = getAuthStoreMode()
+  if (mode === 'mongo' || mode === 'file') return mode
+
+  res.status(503).json({
+    message:
+      'Database is unavailable. Keep MongoDB running and restart the API (npm run server).',
+    store: 'unavailable',
+    mongoState: mongoose.connection.readyState,
+  })
+  return null
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+/** POST /api/auth/register — create customer in MongoDB (or file fallback) */
 router.post('/register', async (req, res) => {
   try {
+    const store = await ensureAuthStore(res)
+    if (!store) return undefined
+
     const name = String(req.body.name || '').trim()
     const email = String(req.body.email || '').trim().toLowerCase()
     let username = String(req.body.username || '').trim().toLowerCase()
@@ -33,12 +65,16 @@ router.post('/register', async (req, res) => {
         .slice(0, 24)
     }
 
-    if (!name || !email || !username || !password) {
+    if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email and password are required' })
     }
 
-    if (username.length < 3) {
-      username = `${username}${Math.floor(100 + Math.random() * 900)}`
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Enter a valid email address' })
+    }
+
+    if (!username || username.length < 3) {
+      username = `user${Date.now().toString(36).slice(-6)}`
     }
 
     if (password.length < PASSWORD_MIN_LENGTH) {
@@ -47,9 +83,17 @@ router.post('/register', async (req, res) => {
       })
     }
 
-    const emailTaken = await users.findOne({ email })
+    const emailTaken = await users.findOne({ email }, { select: '+password' })
     if (emailTaken) {
-      return res.status(409).json({ message: 'Email already registered' })
+      if (emailTaken.googleId && !emailTaken.password) {
+        return res.status(409).json({
+          message:
+            'This email is already registered with Google. Please sign in with Google.',
+        })
+      }
+      return res.status(409).json({
+        message: 'Email already registered. Please sign in.',
+      })
     }
 
     let uniqueUsername = username.slice(0, 30)
@@ -59,7 +103,9 @@ router.post('/register', async (req, res) => {
       const suffix = String(Math.floor(100 + Math.random() * 900))
       uniqueUsername = `${username.slice(0, 26)}${suffix}`
       if (attempt > 8) {
-        return res.status(409).json({ message: 'Could not create a unique username. Try again.' })
+        return res
+          .status(409)
+          .json({ message: 'Could not create a unique username. Try again.' })
       }
     }
 
@@ -71,10 +117,27 @@ router.post('/register', async (req, res) => {
       role: 'customer',
     })
 
-    return res.status(201).json(authResponse(user))
+    // Confirm the account actually landed in the active store
+    // Re-fetch with password selected so login immediately after signup works
+    const saved = await users.findOne({ email })
+    if (!saved) {
+      return res.status(500).json({
+        message: 'Account was not saved to the database. Please try again.',
+        store,
+      })
+    }
+
+    console.log(`[auth] register ok email=${saved.email} store=${store} id=${saved.id || saved._id}`)
+    return res.status(201).json(authResponse(saved))
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({ message: 'Email or username already registered' })
+    }
+    if (error.name === 'ValidationError') {
+      const first = Object.values(error.errors || {})[0]
+      return res.status(400).json({
+        message: first?.message || 'Invalid registration details',
+      })
     }
     return res.status(500).json({ message: error.message || 'Registration failed' })
   }
@@ -83,6 +146,9 @@ router.post('/register', async (req, res) => {
 /** POST /api/auth/login */
 router.post('/login', async (req, res) => {
   try {
+    const store = await ensureAuthStore(res)
+    if (!store) return undefined
+
     const username = String(req.body.username || '').trim().toLowerCase()
     const password = String(req.body.password || '')
 
@@ -95,7 +161,18 @@ router.post('/login', async (req, res) => {
       { select: '+password' }
     )
 
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid username or password' })
+    }
+
+    if (!user.password && user.googleId) {
+      return res.status(400).json({
+        message:
+          'This account uses Google sign-in. Please continue with Google.',
+      })
+    }
+
+    if (!(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid username or password' })
     }
 
@@ -215,31 +292,43 @@ router.post('/reset-password', async (req, res) => {
   }
 })
 
-/** POST /api/auth/google — Firebase Google ID token → app JWT session */
+/** POST /api/auth/google — Firebase Google ID token → app JWT session (Mongo) */
 router.post('/google', async (req, res) => {
   try {
+    const store = await ensureAuthStore(res)
+    if (!store) return undefined
+
     const idToken = String(req.body.idToken || req.body.credential || '').trim()
     if (!idToken) {
       return res.status(400).json({ message: 'Google sign-in token is required' })
     }
 
     const decoded = await verifyFirebaseIdToken(idToken)
-    const googleId = String(decoded.sub || '')
+    const googleId = String(decoded.sub || '').trim()
     const email = String(decoded.email || '')
       .trim()
       .toLowerCase()
-    const name = String(decoded.name || email.split('@')[0] || 'Google user').trim()
+    const name = String(
+      decoded.name || decoded.email?.split?.('@')?.[0] || 'Google user'
+    ).trim()
 
     if (!googleId || !email) {
-      return res.status(400).json({ message: 'Google account is missing email' })
+      return res.status(400).json({
+        message: 'Google account is missing email. Use an account with email access.',
+      })
     }
 
+    // Find by Google UID, else link existing email account, else create customer
     let user = await users.findOne({ googleId })
+    let created = false
+
     if (!user) {
       user = await users.findOne({ email })
       if (user) {
         user.googleId = googleId
-        if (!user.name && name) user.name = name
+        if (name && (!user.name || user.name === 'Google user')) {
+          user.name = name
+        }
         await user.save()
       }
     }
@@ -264,20 +353,44 @@ router.post('/google', async (req, res) => {
       }
 
       user = await users.create({
-        name,
+        name: name || email.split('@')[0],
         email,
         username: uniqueUsername,
         googleId,
         role: 'customer',
       })
+      created = true
     }
 
-    if (!user.isActive) {
+    // Confirm row exists in the active store (Mongo preferred)
+    const saved =
+      (await users.findOne({ googleId })) || (await users.findOne({ email }))
+    if (!saved) {
+      return res.status(500).json({
+        message: 'Google account was not saved to the database. Please try again.',
+        store,
+      })
+    }
+
+    if (!saved.isActive) {
       return res.status(403).json({ message: 'Account is deactivated' })
     }
 
-    return res.json(authResponse(user))
+    const payload = authResponse(saved)
+    payload.created = created
+    return res.json(payload)
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'This Google account or email is already registered. Try signing in.',
+      })
+    }
+    if (error.name === 'ValidationError') {
+      const first = Object.values(error.errors || {})[0]
+      return res.status(400).json({
+        message: first?.message || 'Could not create Google account',
+      })
+    }
     const status = error.status || 500
     return res.status(status).json({
       message: error.message || 'Google login failed',

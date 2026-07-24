@@ -23,7 +23,7 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: MONGODB_DB
-        value: Pahadi_link
+        value: Pahadi_link_DB
       - key: USE_FILE_DB
         value: "false"
       - key: ALLOW_FILE_DB_FALLBACK

@@ -49,7 +49,15 @@ const MILESTONES = [
   },
   {
     label: 'Free shipping',
-    value: 'Orders above ₹499',
+    value: 'First order free',
+  },
+  {
+    label: 'Later delivery',
+    value: 'From ₹39',
+  },
+  {
+    label: 'First-order off',
+    value: 'Flat ₹75',
   },
 ]
 
@@ -57,7 +65,7 @@ const RANGE = [
   'Pahadi rajma, gahat dal, mandua & jhangora',
   'Raw forest honey and herbal hill teas',
   'Bal mithai and festival sweets',
-  'Ringaal crafts, pahadi topi and gift hampers',
+  'Ringaal crafts, pahadi topi, pichodi and gift hampers',
 ]
 
 const About = () => {
@@ -240,7 +248,7 @@ const About = () => {
               </div>
               <p className="about-base__note">
                 <TruckIcon size={14} />
-                Free shipping on eligible orders above ₹499
+                Free delivery on first order · later from ₹39
               </p>
             </div>
           </div>

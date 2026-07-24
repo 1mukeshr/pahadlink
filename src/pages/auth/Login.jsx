@@ -81,21 +81,8 @@ const Login = () => {
   }
 
   return (
-    <AuthLayout
-      title="Welcome back"
-      subtitle={
-        isCheckoutIntent
-          ? 'Sign in to continue — we’ll take you home to add your delivery address'
-          : 'Sign in to your PahadLink account'
-      }
-    >
+    <AuthLayout title="Welcome back">
       <form className="auth-form" onSubmit={onSubmit} noValidate>
-        {isCheckoutIntent && (
-          <p className="auth-alert auth-alert--info" role="status">
-            After login you’ll land on Home. Add your delivery address, then
-            open your bag to checkout.
-          </p>
-        )}
         {message && <p className="auth-alert auth-alert--error">{message}</p>}
 
         <div className="form-field">
@@ -103,7 +90,7 @@ const Login = () => {
             <UserIcon className="input-icon" size={18} />
             <input
               type="text"
-              placeholder="Username or email"
+              placeholder=" "
               id="username"
               name="username"
               autoComplete="username"
@@ -111,7 +98,7 @@ const Login = () => {
               onChange={onChange}
               required
             />
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">Email or username</label>
           </div>
         </div>
 
@@ -119,7 +106,7 @@ const Login = () => {
           id="password"
           name="password"
           label="Password"
-          placeholder="Enter your password"
+          placeholder=" "
           autoComplete="current-password"
           value={form.password}
           onChange={onChange}

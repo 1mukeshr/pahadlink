@@ -14,6 +14,7 @@ export const STOCK_DEFAULTS = {
   'herbal-tea': { stock: 36 },
   'buransh-squash': { stock: 22 },
   'pahadi-topi': { stock: 0 },
+  'pahadi-pichodi': { stock: 12 },
   'ringaal-basket': { stockBySize: { Medium: 7, Large: 0 } },
   jhangora: { stock: 26 },
   'festival-hamper': { stockBySize: { Standard: 9, Premium: 0 } },

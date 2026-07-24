@@ -45,6 +45,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
       sparse: true,
+      unique: true,
     },
     phone: {
       type: String,
@@ -89,6 +90,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     role: this.role,
     phone: this.phone,
     isPhoneVerified: this.isPhoneVerified,
+    hasGoogle: Boolean(this.googleId),
     createdAt: this.createdAt,
   }
 }

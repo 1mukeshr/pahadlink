@@ -31,10 +31,7 @@ const ForgotPassword = () => {
   }
 
   return (
-    <AuthLayout
-      title="Forgot password"
-      subtitle="Enter your email and we’ll send reset instructions"
-    >
+    <AuthLayout title="Forgot password">
       <form className="auth-form" onSubmit={onSubmit}>
         {error && <p className="auth-alert auth-alert--error">{error}</p>}
         {success && <p className="auth-alert auth-alert--success">{success}</p>}

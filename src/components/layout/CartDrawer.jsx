@@ -14,7 +14,14 @@ import {
   ArrowRightIcon,
   DropdownIcon,
 } from '../icons'
-import { FREE_SHIP_AT, calcShipping } from '../../data/coupons'
+import {
+  FREE_SHIP_AT,
+  FIRST_ORDER_DISCOUNT,
+  SHIPPING_FEE,
+  calcShipping,
+} from '../../data/coupons'
+import { GST_RATE_PERCENT, buildGstBreakdown } from '../../data/gst'
+import { fetchFirstOrderStatus } from '../../services/orderService'
 
 const formatPrice = (n) => `₹${n.toLocaleString('en-IN')}`
 const COLLAPSED_ITEM_COUNT = 4
@@ -24,7 +31,7 @@ const COLLAPSED_ITEM_COUNT = 4
  */
 const CartDrawer = () => {
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const {
     cart,
     cartCount,
@@ -37,9 +44,29 @@ const CartDrawer = () => {
   const panelRef = useRef(null)
   const wasOpen = useRef(false)
   const [showAllItems, setShowAllItems] = useState(false)
+  // Default true — every new customer gets free delivery on first order
+  const [isFirstOrder, setIsFirstOrder] = useState(true)
 
-  const shipping = cart.length === 0 ? 0 : calcShipping(cartTotal)
-  const payable = cartTotal + shipping
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const first = await fetchFirstOrderStatus(user?.email || '')
+        if (!cancelled) setIsFirstOrder(first)
+      } catch {
+        if (!cancelled) setIsFirstOrder(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.email, isAuthenticated])
+
+  const shipping =
+    cart.length === 0 ? 0 : calcShipping(cartTotal, { isFirstOrder })
+  const taxableValue = cartTotal + shipping
+  const gst = buildGstBreakdown(taxableValue)
+  const payable = gst.taxableValue + gst.gstAmount
   const shipLeft = Math.max(0, FREE_SHIP_AT - cartTotal)
   const shipProgress = Math.min(100, Math.round((cartTotal / FREE_SHIP_AT) * 100))
   const hiddenItemCount = Math.max(0, cart.length - COLLAPSED_ITEM_COUNT)
@@ -56,7 +83,9 @@ const CartDrawer = () => {
     if (!hasCompleteShippingAddress()) {
       navigate(ROUTES.HOME)
       requestOpenAddressPicker({
-        message: 'Add a complete address, then open your bag to checkout.',
+        message:
+          'Add your current location and delivery address, then continue to checkout.',
+        resumeCheckout: true,
       })
       return
     }
@@ -113,20 +142,36 @@ const CartDrawer = () => {
           <div className="bag-drawer__ship">
             <div className="bag-drawer__ship-row">
               <TruckIcon size={16} />
-              {shipLeft > 0 ? (
+              {isFirstOrder || shipping === 0 ? (
                 <p>
-                  Add <strong>{formatPrice(shipLeft)}</strong> more for free
-                  delivery
+                  {isFirstOrder ? (
+                    <>
+                      <strong>Free delivery</strong> on your first order
+                      {' · '}₹{FIRST_ORDER_DISCOUNT} off
+                    </>
+                  ) : (
+                    <>
+                      <strong>Free delivery</strong> unlocked on this order
+                    </>
+                  )}
                 </p>
               ) : (
                 <p>
-                  <strong>Free delivery</strong> unlocked on this order
+                  Delivery <strong>{formatPrice(SHIPPING_FEE)}</strong>
+                  {shipLeft > 0 ? (
+                    <>
+                      {' · '}add <strong>{formatPrice(shipLeft)}</strong> more
+                      for free
+                    </>
+                  ) : null}
                 </p>
               )}
             </div>
-            <div className="bag-drawer__ship-bar" aria-hidden="true">
-              <span style={{ width: `${shipProgress}%` }} />
-            </div>
+            {!isFirstOrder && shipLeft > 0 ? (
+              <div className="bag-drawer__ship-bar" aria-hidden="true">
+                <span style={{ width: `${shipProgress}%` }} />
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -251,10 +296,17 @@ const CartDrawer = () => {
                   {shipping === 0 ? 'FREE' : formatPrice(shipping)}
                 </span>
               </div>
+              <div className="bag-drawer__line bag-drawer__line--muted">
+                <span>GST ({GST_RATE_PERCENT}%)</span>
+                <span>{formatPrice(gst.gstAmount)}</span>
+              </div>
               <div className="bag-drawer__total">
                 <span>Total</span>
                 <strong>{formatPrice(payable)}</strong>
               </div>
+              <p className="bag-drawer__gst-note">
+                Including GST ({GST_RATE_PERCENT}%)
+              </p>
             </div>
 
             <button

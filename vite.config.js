@@ -27,6 +27,8 @@ export default defineConfig(({ command }) => ({
     host: '0.0.0.0',
     port: 5173,
     strictPort: false,
+    // Allow phone/other devices on same Wi‑Fi (LAN hostname / IP)
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:5000',
@@ -38,6 +40,7 @@ export default defineConfig(({ command }) => ({
     host: '0.0.0.0',
     port: 4173,
     strictPort: false,
+    allowedHosts: true,
     // Same /api proxy as dev so `npm run preview` works with local API
     proxy: {
       '/api': {

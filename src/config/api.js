@@ -109,7 +109,6 @@ async function pickHealthyApiUrl(candidates) {
   if (!candidates.length) return ''
   for (const url of candidates) {
     // Prefer first reachable host so Pages can fall back if one deploy is asleep
-    // eslint-disable-next-line no-await-in-loop
     if (await probeApiHealth(url)) return url
   }
   // Keep first configured URL so errors still show a concrete host

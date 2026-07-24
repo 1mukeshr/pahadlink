@@ -17,8 +17,13 @@ import {
 import { ROUTES } from '../config'
 import { features } from '../data/siteData'
 import {
+  ADDRESSES_EVENT,
+  LOCATION_EVENT,
+  clearResumeCheckout,
   hasCompleteShippingAddress,
+  markResumeCheckout,
   requestOpenAddressPicker,
+  shouldResumeCheckout,
 } from '../utils/locationStorage'
 import { fetchRecentReviews } from '../services/reviewService'
 import pahadiWoman from '../assets/images/banners/hero-pahadi-woman.png'
@@ -96,19 +101,42 @@ const Home = () => {
 
     const hint =
       state.checkoutHint ||
-      'Add your delivery address, then open your bag to checkout.'
+      'Add your current location and delivery address to continue checkout.'
+
+    if (state.resumeCheckout) markResumeCheckout()
 
     if (!hasCompleteShippingAddress()) {
       const t = window.setTimeout(() => {
-        requestOpenAddressPicker({ message: hint })
+        requestOpenAddressPicker({
+          message: hint,
+          resumeCheckout: true,
+        })
       }, 400)
-      navigate(ROUTES.HOME, { replace: true })
+      navigate(ROUTES.HOME, { replace: true, state: null })
       return () => window.clearTimeout(t)
     }
 
-    navigate(ROUTES.HOME, { replace: true })
+    clearResumeCheckout()
+    navigate(ROUTES.CHECKOUT, { replace: true })
     return undefined
   }, [location.state, navigate])
+
+  // After register/login checkout intent: once location+address saved → checkout
+  useEffect(() => {
+    const tryResume = () => {
+      if (!shouldResumeCheckout()) return
+      if (!hasCompleteShippingAddress()) return
+      clearResumeCheckout()
+      navigate(ROUTES.CHECKOUT)
+    }
+
+    window.addEventListener(ADDRESSES_EVENT, tryResume)
+    window.addEventListener(LOCATION_EVENT, tryResume)
+    return () => {
+      window.removeEventListener(ADDRESSES_EVENT, tryResume)
+      window.removeEventListener(LOCATION_EVENT, tryResume)
+    }
+  }, [navigate])
 
   return (
     <>
@@ -129,7 +157,7 @@ const Home = () => {
               <div className="benefit-icon" aria-hidden="true"><TruckIcon size={22} /></div>
               <div className="benefit-copy">
                 <h4>Free shipping</h4>
-                <p>On orders above ₹499</p>
+                <p>First order free · then from ₹39</p>
               </div>
             </div>
             <div className="benefit-item">

@@ -1,8 +1,21 @@
+import mongoose from 'mongoose'
 import UserModel from '../models/User.js'
 import { fileUserStore } from '../store/fileUserStore.js'
 
+/**
+ * Prefer a live Mongo connection whenever available.
+ * File store is only used when Mongo is down and fallback was enabled —
+ * otherwise register/login can "succeed" in a local file and never hit Atlas.
+ */
 function usingFileStore() {
+  if (mongoose.connection.readyState === 1) return false
   return fileUserStore.enabled
+}
+
+export function getAuthStoreMode() {
+  if (mongoose.connection.readyState === 1) return 'mongo'
+  if (fileUserStore.enabled) return 'file'
+  return 'unavailable'
 }
 
 export const users = {

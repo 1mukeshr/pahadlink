@@ -2,8 +2,8 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
-import { connectDB } from './config/db.js'
-import { fileUserStore } from './store/fileUserStore.js'
+import { connectDB, getMongoDbName } from './config/db.js'
+import { getAuthStoreMode } from './services/users.js'
 import authRoutes from './routes/auth.js'
 import orderRoutes from './routes/orders.js'
 import couponRoutes from './routes/coupons.js'
@@ -69,16 +69,18 @@ app.use(express.json({ limit: '1mb' }))
 
 function healthPayload() {
   const dbState = mongoose.connection.readyState
-  const usingFile = fileUserStore.enabled
+  const store = getAuthStoreMode()
+  const usingFile = store === 'file'
   const mongoOk = dbState === 1
-  const authReady = mongoOk || usingFile
+  const authReady = store === 'mongo' || store === 'file'
   // Service is healthy when auth can run (Mongo or file-store).
   // ordersReady stays false without Mongo so clients know checkout needs Atlas.
   return {
     ok: authReady,
     service: 'pahadlink-api',
-    database: mongoOk ? 'Pahadi_link' : usingFile ? 'file-store' : 'unavailable',
+    database: mongoOk ? getMongoDbName() : usingFile ? 'file-store' : 'unavailable',
     mongo: mongoOk ? 'connected' : usingFile ? 'file-fallback' : 'disconnected',
+    authStore: store,
     ordersReady: mongoOk,
     authReady,
     time: new Date().toISOString(),

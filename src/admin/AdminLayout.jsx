@@ -180,6 +180,34 @@ export default function AdminLayout({ children, mode = 'admin' }) {
             )}
             {isAdmin && (
               <NavLink
+                to={ROUTES.ADMIN_INVENTORY}
+                className={({ isActive }) =>
+                  `admin-nav__link${isActive ? ' is-active' : ''}`
+                }
+                onClick={() => setNavOpen(false)}
+              >
+                <span className="admin-nav__ico" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                    <path
+                      d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M12 12v9M4 7.5l8 4.5 8-4.5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                Inventory
+              </NavLink>
+            )}
+            {isAdmin && (
+              <NavLink
                 to={ROUTES.ADMIN_LEADS}
                 className={({ isActive }) =>
                   `admin-nav__link${isActive ? ' is-active' : ''}`
@@ -244,7 +272,6 @@ export default function AdminLayout({ children, mode = 'admin' }) {
               </span>
               <div className="admin-nav__user-text">
                 <strong>{user?.name || user?.username || mode}</strong>
-                <span>{roleLabel}</span>
                 <em>{user?.email || 'Signed in'}</em>
               </div>
             </div>

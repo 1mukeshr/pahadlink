@@ -12,7 +12,7 @@ export const faqsByPage = {
     },
     {
       q: 'Is shipping free?',
-      a: 'Free shipping applies on orders above ₹499. Below that, shipping charges are shown before you pay.',
+      a: 'First order: free delivery + ₹75 off. Later: ₹39 delivery below ₹499, free above ₹499.',
     },
     {
       q: 'Are your products preservative-free?',
@@ -69,7 +69,7 @@ export const faqsByPage = {
     },
     {
       q: 'Do you offer free shipping?',
-      a: 'Yes. Orders above ₹499 get free shipping. Below that, charges are shown at checkout.',
+      a: 'Yes. First order is free delivery. Later orders are free above ₹499, otherwise ₹39.',
     },
     {
       q: 'How do returns work?',

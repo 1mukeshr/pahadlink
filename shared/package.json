@@ -8,6 +8,7 @@
     ".": "./index.js",
     "./constants": "./constants.js",
     "./coupons": "./coupons.js",
+    "./gst": "./gst.js",
     "./catalog": "./catalog.js",
     "./inventoryDefaults": "./inventoryDefaults.js",
     "./ratings": "./ratings.js"

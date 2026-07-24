@@ -29,7 +29,7 @@ import { MAX_QTY_PER_ITEM_PER_CUSTOMER } from '../config/constants.js'
 
 const router = Router()
 
-const PAYMENT_METHODS = ['cod', 'upi', 'card']
+const PAYMENT_METHODS = ['cod', 'upi']
 
 /** Seller can see pending COD and move them into fulfilment */
 const SELLER_STATUSES = [
@@ -70,7 +70,11 @@ function pushTimeline(order, status, note, by) {
 async function isFirstOrderEmail(email) {
   const clean = String(email || '').trim().toLowerCase()
   if (!clean) return true
-  const prior = await Order.countDocuments({ customerEmail: clean })
+  // Cancelled orders do not consume the first-order free delivery benefit
+  const prior = await Order.countDocuments({
+    customerEmail: clean,
+    status: { $nin: ['cancelled'] },
+  })
   return prior === 0
 }
 
@@ -259,28 +263,41 @@ router.post('/', requireMongo, protect, async (req, res) => {
       couponCode,
     } = req.body
 
-    if (!customerName || !customerEmail || !Array.isArray(items) || !items.length) {
-      return res.status(400).json({
-        message: 'customerName, customerEmail and items are required',
-      })
-    }
-
     const addr = shippingAddress && typeof shippingAddress === 'object'
       ? shippingAddress
       : {}
     const line1 = String(addr.line1 || addr.address || '').trim()
     const city = String(addr.city || '').trim()
     const state = String(addr.state || '').trim()
-    const pincode = String(addr.pincode || '').trim()
-    const phone = String(customerPhone || '').trim()
-    if (!line1 || !city || !state || !/^\d{6}$/.test(pincode)) {
+    const pincode = String(addr.pincode || '')
+      .replace(/\D/g, '')
+      .slice(0, 6)
+    const phone = String(customerPhone || '')
+      .replace(/\D/g, '')
+      .slice(0, 10)
+    const emailRaw = String(customerEmail || '').trim().toLowerCase()
+    if (!String(customerName || '').trim() || !emailRaw || !Array.isArray(items) || !items.length) {
       return res.status(400).json({
-        message: 'Complete shipping address is required (address, city, state, 6-digit pincode)',
+        message: 'customerName, customerEmail and items are required',
       })
     }
-    if (!phone || phone.replace(/\D/g, '').length < 10) {
+    if (!/^\S+@\S+\.\S+$/.test(emailRaw)) {
+      return res.status(400).json({ message: 'Valid email is required' })
+    }
+    if (line1.length < 8 || !city || !state || !/^\d{6}$/.test(pincode)) {
       return res.status(400).json({
-        message: 'A valid phone number is required',
+        message:
+          'Complete shipping address is required (full address, city, state, 6-digit pincode)',
+      })
+    }
+    if (!phone) {
+      return res.status(400).json({
+        message: 'Mobile number is required',
+      })
+    }
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({
+        message: 'Enter a valid 10-digit Indian mobile number',
       })
     }
     const cleanAddress = { line1, city, state, pincode }
@@ -309,7 +326,7 @@ router.post('/', requireMongo, protect, async (req, res) => {
       }
     }
 
-    const email = String(customerEmail).trim().toLowerCase()
+    const email = emailRaw
 
     // Reject if any line is out of stock
     const shortages = []
@@ -350,6 +367,7 @@ router.post('/', requireMongo, protect, async (req, res) => {
 
     const totals = buildOrderTotals(itemsTotal, requestedCode, {
       isFirstOrder: firstOrder,
+      shippingState: cleanAddress?.state || '',
     })
 
     const isAdmin = req.user?.role === 'admin'
@@ -389,13 +407,21 @@ router.post('/', requireMongo, protect, async (req, res) => {
             user: req.user?._id || req.user?.id || null,
             customerName: String(customerName).trim(),
             customerEmail: email,
-            customerPhone: String(customerPhone || '').trim(),
+            customerPhone: phone,
             items: cleanItems,
             itemsTotal: totals.itemsTotal,
             shippingFee: totals.shippingFee,
             discountAmount: totals.discountAmount,
             couponCode: totals.couponCode,
             totalAmount: totals.totalAmount,
+            taxableValue: totals.taxableValue,
+            gstRate: totals.gstRate,
+            gstAmount: totals.gstAmount,
+            cgstAmount: totals.cgstAmount,
+            sgstAmount: totals.sgstAmount,
+            igstAmount: totals.igstAmount,
+            gstType: totals.gstType,
+            pricesIncludeGst: false,
             shippingAddress: cleanAddress,
             notes: String(notes || '').trim(),
             paymentMethod: method,

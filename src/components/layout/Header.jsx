@@ -21,9 +21,9 @@ import { capitalizeWords } from '../../utils/text'
 import logo from '../../assets/images/logo.png'
 
 const PROMO = {
-  text: 'Flat 15% off on your first order',
+  text: 'Flat ₹75 off on your first order',
   code: 'PAHAD15',
-  extra: 'Free shipping above ₹499',
+  extra: 'Free delivery on first order · later from ₹39',
   to: `${ROUTES.SHOP}?tag=bestseller`,
 }
 
@@ -185,7 +185,7 @@ const Header = () => {
 
                 <button
                   type="button"
-                  className="header-icon-link"
+                  className="header-icon-link header-bag"
                   aria-label={`Bag, ${cartCount} items`}
                   onClick={openCart}
                 >
@@ -215,8 +215,7 @@ const Header = () => {
                   <UserIcon size={20} />
                 </span>
                 <span className="header-icon-label">
-                  Login
-                  <DropdownIcon size={14} className="header-account-chevron" />
+                  Account
                 </span>
               </NavLink>
             )}

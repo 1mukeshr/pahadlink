@@ -105,14 +105,6 @@ export const UserIcon = (props) => (
   </Icon>
 )
 
-export const UserPlusIcon = (props) => (
-  <Icon {...props}>
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M19 8v6" />
-    <path d="M22 11h-6" />
-  </Icon>
-)
 
 export const LockIcon = (props) => (
   <Icon {...props}>
@@ -291,12 +283,6 @@ export const HandicraftIcon = (props) => (
   </Icon>
 )
 
-export const WellnessIcon = (props) => (
-  <Icon {...props}>
-    <path d="M11 21A8 8 0 0 1 9.5 6.2C15 5 17 3.5 19 2c1 2.2 2 4.5 2 8.2 0 5.8-4.5 10.8-10 10.8z" />
-    <path d="M2 21c0-3.2 1.8-5.5 5-6.2" />
-  </Icon>
-)
 
 export const SweetsIcon = (props) => (
   <Icon {...props}>
@@ -389,28 +375,8 @@ export const HandmadeIcon = (props) => (
   </Icon>
 )
 
-export const BottleIcon = (props) => (
-  <Icon {...props}>
-    <path d="M10 4h4v3h1l1 13H8l1-13h1V4z" />
-    <path d="M11 10h2" />
-  </Icon>
-)
 
-export const SoapIcon = (props) => (
-  <Icon {...props}>
-    <rect x="6" y="9" width="12" height="9" rx="2" />
-    <path d="M9 9c0-2 1.5-3 3-3s3 1 3 3" />
-    <path d="M9 14h6" />
-  </Icon>
-)
 
-export const CosmeticIcon = (props) => (
-  <Icon {...props}>
-    <circle cx="12" cy="10" r="4" />
-    <path d="M8 14h8v6H8z" />
-    <path d="M10 17h4" />
-  </Icon>
-)
 
 export const SnackIcon = (props) => (
   <Icon {...props}>
@@ -432,13 +398,7 @@ export const ChevronRightIcon = (props) => (
   </Icon>
 )
 
-export const ChevronLeftIcon = (props) => (
-  <Icon strokeWidth={2.35} {...props}>
-    <path d="m15 6-6 6 6 6" />
-  </Icon>
-)
 
-/** Solid dropdown caret - clearer at header / pincode sizes */
 export const DropdownIcon = ({ className = '', size = 14, ...props }) => (
   <svg
     viewBox="0 0 24 24"
@@ -474,15 +434,6 @@ export const CloseIcon = (props) => (
   </Icon>
 )
 
-export const TrashIcon = (props) => (
-  <Icon {...props}>
-    <path d="M3 6h18" />
-    <path d="M8 6V4h8v2" />
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-    <path d="M10 11v6" />
-    <path d="M14 11v6" />
-  </Icon>
-)
 
 export const PackageIcon = (props) => (
   <Icon {...props}>
@@ -615,31 +566,22 @@ export const UpiIcon = ({ size = 24, className = '' }) => (
   </svg>
 )
 
-/** Credit / debit card - blue (original) */
-export const CardPayIcon = ({ size = 24, className = '' }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    aria-hidden="true"
-    fill="none"
-  >
-    <rect x="2.5" y="5.5" width="19" height="13" rx="2.2" stroke="#1565C0" strokeWidth="1.5" />
-    <path d="M2.5 9.2h19" stroke="#1565C0" strokeWidth="2.4" />
-    <rect x="5" y="14.2" width="4.2" height="1.5" rx="0.35" fill="#1565C0" />
-    <rect x="10.2" y="14.2" width="2.6" height="1.5" rx="0.35" fill="#42A5F5" />
-  </svg>
-)
-
-export const GridIcon = (props) => (
+export const PrintIcon = (props) => (
   <Icon {...props}>
-    <rect x="3" y="3" width="7" height="7" />
-    <rect x="14" y="3" width="7" height="7" />
-    <rect x="3" y="14" width="7" height="7" />
-    <rect x="14" y="14" width="7" height="7" />
+    <path d="M6 9V2h12v7" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <rect x="6" y="14" width="12" height="8" />
   </Icon>
 )
+
+export const DownloadIcon = (props) => (
+  <Icon {...props}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </Icon>
+)
+
 
 export const StarIcon = ({
   filled = true,
@@ -810,7 +752,7 @@ const resolveSubcategoryIcon = (name, categoryId) => {
   if (/rajma|gahat|bhatt|dal/.test(text)) return 'dal'
   if (/mandua|jhangora|mil/.test(text)) return 'grain'
   if (/topi/.test(text)) return 'hat'
-  if (/shawl/.test(text)) return 'shawl'
+  if (/pichod|pichor|shawl/.test(text)) return 'shawl'
   if (/dress/.test(text)) return 'dress'
   if (/handwoven|fabric/.test(text)) return 'fabric'
   if (/wooden|wood/.test(text)) return 'wood'

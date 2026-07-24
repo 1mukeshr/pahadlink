@@ -63,8 +63,50 @@ function addressBlock(order) {
 }
 
 function paymentLabel(method) {
-  const map = { cod: 'Cash on Delivery', upi: 'UPI', card: 'Card' }
+  const map = { cod: 'Cash on Delivery', upi: 'UPI' }
   return map[method] || method || '—'
+}
+
+function gstRowsHtml(order) {
+  const total = Number(order.totalAmount) || 0
+  if (!total) return ''
+
+  const rate = order.gstRate != null ? Number(order.gstRate) : 0.05
+  const ratePct = Math.round(rate * 1000) / 10
+  const halfPct = ratePct / 2
+  let cgst = Number(order.cgstAmount)
+  let sgst = Number(order.sgstAmount)
+  let igst = Number(order.igstAmount)
+  let gstType = order.gstType || ''
+
+  if (order.gstAmount == null || (!gstType && order.cgstAmount == null)) {
+    const gstAmount =
+      order.gstAmount != null
+        ? Number(order.gstAmount)
+        : Math.round((total * rate) / (1 + rate))
+    const ship = String(order.shippingAddress?.state || '')
+      .trim()
+      .toLowerCase()
+    const sameState = ship === 'uttarakhand' || !ship
+    if (sameState) {
+      cgst = Math.floor(gstAmount / 2)
+      sgst = gstAmount - cgst
+      igst = 0
+      gstType = 'cgst_sgst'
+    } else {
+      cgst = 0
+      sgst = 0
+      igst = gstAmount
+      gstType = 'igst'
+    }
+  }
+
+  const halfLabel = `${halfPct}%`
+  if (gstType === 'igst') {
+    return `<tr><td style="padding:4px 0;color:#666;">IGST (${ratePct}%)</td><td style="padding:4px 0;text-align:right;">${formatMoney(igst)}</td></tr>`
+  }
+  return `<tr><td style="padding:4px 0;color:#666;">CGST (${halfLabel})</td><td style="padding:4px 0;text-align:right;">${formatMoney(cgst)}</td></tr>
+      <tr><td style="padding:4px 0;color:#666;">SGST (${halfLabel})</td><td style="padding:4px 0;text-align:right;">${formatMoney(sgst)}</td></tr>`
 }
 
 export function orderConfirmationEmail(order) {
@@ -78,8 +120,9 @@ export function orderConfirmationEmail(order) {
     </p>
     <table role="presentation" width="100%" style="margin:0 0 16px;font-size:14px;">
       ${itemsRows(order)}
+      ${gstRowsHtml(order)}
       <tr>
-        <td style="padding:12px 0 0;font-weight:700;">Total</td>
+        <td style="padding:12px 0 0;font-weight:700;">Total (incl. GST)</td>
         <td style="padding:12px 0 0;text-align:right;font-weight:700;color:${brand.primary};">${formatMoney(order.totalAmount)}</td>
       </tr>
     </table>
@@ -120,7 +163,8 @@ export function adminNewPaidOrderEmail(order) {
       <tr><td style="padding:4px 0;color:#666;">Email</td><td style="padding:4px 0;text-align:right;">${escapeHtml(order.customerEmail)}</td></tr>
       <tr><td style="padding:4px 0;color:#666;">Phone</td><td style="padding:4px 0;text-align:right;">${escapeHtml(order.customerPhone || '—')}</td></tr>
       <tr><td style="padding:4px 0;color:#666;">Payment</td><td style="padding:4px 0;text-align:right;">${escapeHtml(paymentLabel(order.paymentMethod))} · paid</td></tr>
-      <tr><td style="padding:4px 0;color:#666;">Total</td><td style="padding:4px 0;text-align:right;font-weight:700;color:${brand.primary};">${formatMoney(order.totalAmount)}</td></tr>
+      ${gstRowsHtml(order)}
+      <tr><td style="padding:4px 0;color:#666;">Total (incl. GST)</td><td style="padding:4px 0;text-align:right;font-weight:700;color:${brand.primary};">${formatMoney(order.totalAmount)}</td></tr>
     </table>
     <table role="presentation" width="100%" style="margin:0 0 16px;font-size:14px;">
       ${itemsRows(order)}

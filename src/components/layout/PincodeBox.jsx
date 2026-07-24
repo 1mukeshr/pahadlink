@@ -12,6 +12,15 @@ import {
 } from '../icons'
 import { reverseGeocode, searchPlaces, enrichFromPincode } from '../../services/geocode'
 import {
+  ADDRESS_MIN_LENGTH,
+  LOCATION_AREA_MIN,
+  LOCATION_LINE_MIN,
+  digitsPin,
+  isValidIndianMobile,
+  isValidPincode,
+  streetFromLocation,
+} from '../../utils/checkoutValidation'
+import {
   ADDRESSES_EVENT,
   ADDRESS_TAGS,
   INDIA_STATES,
@@ -236,6 +245,8 @@ const PincodeBox = () => {
     const prev = document.body.style.overflow
     const mobile = window.matchMedia(MOBILE_MQ).matches
     if (mobile) {
+      // Lock page scroll while the mobile address sheet is open
+      // eslint-disable-next-line react-hooks/immutability -- intentional body scroll lock
       document.body.style.overflow = 'hidden'
       document.body.classList.add('pincode-sheet-open')
     }
@@ -499,12 +510,14 @@ const PincodeBox = () => {
         }
         const split = splitAddressForForm(seed)
         const houseOk =
-          String(split.line1 || '').trim().length >= 2 ||
-          String(split.area || '').trim().length >= 3
+          String(split.line1 || '').trim().length >= LOCATION_LINE_MIN ||
+          String(split.area || '').trim().length >= LOCATION_AREA_MIN
         const usable =
           houseOk &&
           split.city &&
-          /^\d{6}$/.test(split.pin) &&
+          split.state &&
+          isValidPincode(split.pin) &&
+          streetFromLocation(split).length >= ADDRESS_MIN_LENGTH &&
           split.line1 !== 'Current location'
 
         if (usable) {
@@ -542,7 +555,7 @@ const PincodeBox = () => {
         })
         setGeoState('idle')
         setGeoError(
-          'Location found — add missing house / locality / pincode, then save.'
+          'Location found — add house/area details if needed, then save. Mobile number is asked at checkout.'
         )
       } catch (err) {
         if (err?.code === 1 || err?.code === err?.PERMISSION_DENIED) {
@@ -568,20 +581,28 @@ const PincodeBox = () => {
     const area = manual.area.trim()
     const landmark = manual.landmark.trim()
     const city = manual.city.trim()
-    const pin = manual.pin.replace(/\D/g, '').slice(0, 6)
-    const phone = manual.phone.replace(/\D/g, '').slice(0, 10)
+    const pin = digitsPin(manual.pin)
+    const phone = String(manual.phone || '')
+      .replace(/\D/g, '')
+      .slice(0, 10)
     const name = manual.name.trim()
+    const state = String(manual.state || '').trim()
+    const street = streetFromLocation({ line1, floor, area })
 
     if (!manual.tag || !ADDRESS_TAGS.includes(manual.tag)) {
       setManualError('Choose how to save this address')
       return
     }
-    if (line1.length < 3) {
+    if (line1.length < LOCATION_LINE_MIN) {
       setManualError('Enter flat / house no / building name')
       return
     }
-    if (area.length < 3) {
+    if (area.length < LOCATION_AREA_MIN) {
       setManualError('Enter area / sector / locality')
+      return
+    }
+    if (street.length < ADDRESS_MIN_LENGTH) {
+      setManualError('Enter a fuller house and area address')
       return
     }
     if (!name) {
@@ -592,12 +613,16 @@ const PincodeBox = () => {
       setManualError('City is required')
       return
     }
-    if (!/^\d{6}$/.test(pin)) {
+    if (!state) {
+      setManualError('State is required')
+      return
+    }
+    if (!isValidPincode(pin)) {
       setManualError('Enter a valid 6-digit pincode')
       return
     }
-    if (phone && !/^[6-9]\d{9}$/.test(phone)) {
-      setManualError('Enter a valid 10-digit mobile')
+    if (phone && !isValidIndianMobile(phone)) {
+      setManualError('Enter a valid 10-digit mobile, or leave blank for checkout')
       return
     }
 
@@ -611,9 +636,9 @@ const PincodeBox = () => {
       area,
       landmark,
       city,
-      state: manual.state,
+      state,
       pin,
-      fullAddress: [line1, floor, area, landmark, city, manual.state, pin]
+      fullAddress: [line1, floor, area, landmark, city, state, pin]
         .filter(Boolean)
         .join(', '),
       source: manual.id ? 'edit' : 'manual',
@@ -912,8 +937,9 @@ const PincodeBox = () => {
                         placeholder=" "
                         inputMode="tel"
                         autoComplete="tel"
+                        maxLength={10}
                       />
-                      <span>Phone</span>
+                      <span>Mobile (optional)</span>
                     </label>
                   </div>
                 </div>

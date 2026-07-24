@@ -6,6 +6,7 @@
 
 export * from './constants.js'
 export * from './coupons.js'
+export * from './gst.js'
 export * from './catalog.js'
 export * from './inventoryDefaults.js'
 export * from './ratings.js'

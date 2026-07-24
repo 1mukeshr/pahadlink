@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { connectDB, disconnectDB } from '../config/db.js'
+import { connectDB, disconnectDB, getMongoDbName } from '../config/db.js'
 import User from '../models/User.js'
 
 async function seed() {
@@ -21,7 +21,7 @@ async function seed() {
     await user.save()
     console.log(`Updated existing user to admin: ${username}`)
   } else {
-    user = await User.create({
+    await User.create({
       name: 'PahadLink Admin',
       email,
       username,
@@ -40,7 +40,7 @@ async function seed() {
   }
 
   console.log({
-    database: 'Pahadi_link',
+    database: getMongoDbName(),
     email,
     username,
     password,

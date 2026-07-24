@@ -3,17 +3,23 @@
  * Server always re-validates on order create.
  */
 
+/** Free delivery threshold for repeat orders */
 export const FREE_SHIP_AT = 499
-export const SHIPPING_FEE = 49
+
+/** Delivery fee on repeat orders (not first order) */
+export const SHIPPING_FEE = 39
+
+/** Automatic flat discount on first order (₹50–75 range) */
+export const FIRST_ORDER_DISCOUNT = 75
 
 export const COUPONS = {
   PAHAD15: {
     code: 'PAHAD15',
-    type: 'percent',
-    value: 15,
+    type: 'flat',
+    value: FIRST_ORDER_DISCOUNT,
     minSubtotal: 0,
     firstOrderOnly: true,
-    label: '15% off',
+    label: `₹${FIRST_ORDER_DISCOUNT} off`,
   },
   HILL50: {
     code: 'HILL50',
@@ -32,7 +38,12 @@ export function normalizeCouponCode(raw = '') {
     .replace(/\s+/g, '')
 }
 
-export function calcShipping(subtotal) {
+/**
+ * @param {number} subtotal
+ * @param {{ isFirstOrder?: boolean }} [opts]
+ */
+export function calcShipping(subtotal, opts = {}) {
+  if (opts.isFirstOrder) return 0
   const amount = Math.max(0, Number(subtotal) || 0)
   return amount >= FREE_SHIP_AT ? 0 : SHIPPING_FEE
 }
@@ -94,4 +105,13 @@ export function applyCoupon(subtotal, rawCode, { isFirstOrder = true } = {}) {
     discount,
     message: `${coupon.label} applied`,
   }
+}
+
+/**
+ * First-order welcome flat when no better coupon is applied.
+ */
+export function welcomeDiscount(subtotal, { isFirstOrder = false } = {}) {
+  if (!isFirstOrder) return 0
+  const amount = Math.max(0, Number(subtotal) || 0)
+  return Math.min(FIRST_ORDER_DISCOUNT, amount)
 }

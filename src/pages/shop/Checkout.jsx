@@ -9,11 +9,11 @@ import {
   ShieldIcon,
   TruckIcon,
   CartIcon,
-  CodIcon,
-  UpiIcon,
-  CardPayIcon,
   ChevronDownIcon,
 } from '../../components/icons'
+import googlePayIcon from '../../assets/images/payments/google-pay.svg'
+import phonePeIcon from '../../assets/images/payments/phonepe.svg'
+import paytmIcon from '../../assets/images/payments/paytm.svg'
 import { ROUTES, STORAGE, productPath, MAX_QTY_PER_ITEM_PER_CUSTOMER } from '../../config'
 import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
@@ -23,11 +23,13 @@ import {
   validateCoupon,
   mapApiOrderToUi,
   fetchMyOrders,
+  fetchFirstOrderStatus,
 } from '../../services/orderService'
 import {
   ADDRESSES_EVENT,
   INDIA_STATES,
   LOCATION_EVENT,
+  clearResumeCheckout,
   getPreferredDeliveryAddress,
   hasCompleteShippingAddress,
   listAddresses,
@@ -39,11 +41,25 @@ import {
   upsertAddress,
 } from '../../utils/locationStorage'
 import {
+  digitsPhone,
+  firstCheckoutErrorField,
+  isCheckoutDetailsReady,
+  mobileValidationMessage,
+  validateCheckoutForm,
+} from '../../utils/checkoutValidation'
+import {
   FREE_SHIP_AT,
+  FIRST_ORDER_DISCOUNT,
+  SHIPPING_FEE,
   applyCoupon,
   calcShipping,
   normalizeCouponCode,
+  welcomeDiscount,
 } from '../../data/coupons'
+import {
+  GST_RATE_PERCENT,
+  buildGstBreakdown,
+} from '../../data/gst'
 
 const ORDER_POPUP_MS = 20000
 const COLLAPSED_BAG_ITEM_COUNT = 2
@@ -55,22 +71,18 @@ const PAYMENTS = [
     id: 'upi',
     title: 'UPI',
     short: 'Pay by any UPI app',
-    desc: 'Google Pay, PhonePe, Paytm and more.',
-    Icon: UpiIcon,
-  },
-  {
-    id: 'card',
-    title: 'Credit / Debit / ATM Card',
-    short: 'Add and secure cards as per RBI guidelines',
-    desc: 'Visa, Mastercard, RuPay and more.',
-    Icon: CardPayIcon,
+    desc: '',
+    brands: [
+      { id: 'gpay', label: 'Google Pay', src: googlePayIcon },
+      { id: 'phonepe', label: 'PhonePe', src: phonePeIcon },
+      { id: 'paytm', label: 'Paytm', src: paytmIcon },
+    ],
   },
   {
     id: 'cod',
     title: 'Cash on Delivery',
     short: 'Pay when your order arrives',
     desc: 'Available for most pincodes.',
-    Icon: CodIcon,
   },
 ]
 
@@ -211,6 +223,7 @@ const Checkout = () => {
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [showAllBagItems, setShowAllBagItems] = useState(false)
+  const [isFirstOrder, setIsFirstOrder] = useState(true)
 
   const hiddenBagItemCount = Math.max(0, cart.length - COLLAPSED_BAG_ITEM_COUNT)
   const visibleBagItems = showAllBagItems
@@ -350,45 +363,66 @@ const Checkout = () => {
     }
   }, [order, dismissOrderPopup])
 
-  // Address must be complete before checkout — otherwise back to Home
+  // Location + address required before checkout — phone is collected here
   useEffect(() => {
     if (order) return
-    if (hasCompleteShippingAddress()) return
+    if (hasCompleteShippingAddress()) {
+      clearResumeCheckout()
+      return
+    }
     navigate(ROUTES.HOME, { replace: true })
     requestOpenAddressPicker({
-      message: 'Add a complete address, then open your bag to checkout.',
+      message:
+        'Add your current location and delivery address to continue checkout. Mobile number is required before placing the order.',
+      resumeCheckout: true,
     })
   }, [navigate, order])
 
-  const shipping = calcShipping(cartTotal)
-  const discount = appliedCoupon?.discount || 0
-  const payable = Math.max(0, cartTotal - discount + shipping)
+  // First order for every customer: free delivery (+ ₹75 welcome on server)
+  useEffect(() => {
+    const email = (form.email || user?.email || '').trim().toLowerCase()
+    let cancelled = false
+    ;(async () => {
+      try {
+        const first = await fetchFirstOrderStatus(email)
+        if (!cancelled) setIsFirstOrder(first)
+      } catch {
+        // Fail open: new customers must get free delivery
+        if (!cancelled) setIsFirstOrder(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [form.email, user?.email])
+
+  const shipping = calcShipping(cartTotal, { isFirstOrder })
+  const autoWelcome = welcomeDiscount(cartTotal, { isFirstOrder })
+  const discount = Math.max(appliedCoupon?.discount || 0, autoWelcome)
+  const taxableValue = Math.max(0, cartTotal - discount + shipping)
+  const gst = useMemo(
+    () =>
+      buildGstBreakdown(taxableValue, {
+        shippingState: form.state || '',
+      }),
+    [taxableValue, form.state]
+  )
+  const payable = gst.taxableValue + gst.gstAmount
   const shipLeft = Math.max(0, FREE_SHIP_AT - cartTotal)
   const shipProgress = Math.min(100, Math.round((cartTotal / FREE_SHIP_AT) * 100))
 
-  const formReady = useMemo(() => {
-    const phoneOk = /^[6-9]\d{9}$/.test(form.phone.replace(/\s/g, ''))
-    const emailOk = /^\S+@\S+\.\S+$/.test(form.email.trim())
-    const addressOk = form.address.trim().length >= 8
-    const pinOk = /^\d{6}$/.test(form.pincode.trim())
-    return (
-      Boolean(form.name.trim()) &&
-      emailOk &&
-      phoneOk &&
-      addressOk &&
-      Boolean(form.city.trim()) &&
-      Boolean(form.state) &&
-      pinOk
-    )
-  }, [form])
+  const formReady = useMemo(() => isCheckoutDetailsReady(form), [form])
 
   const canPlaceOrder =
     Boolean(cart.length) && formReady && Boolean(payment) && !placing
 
+  /** Allow click so missing phone / fields show validation (not only disabled state) */
+  const canAttemptOrder = Boolean(cart.length) && Boolean(payment) && !placing
+
   useEffect(() => {
     if (!appliedCoupon?.code) return
     const code = appliedCoupon.code
-    const refreshed = applyCoupon(cartTotal, code, { isFirstOrder: true })
+    const refreshed = applyCoupon(cartTotal, code, { isFirstOrder })
     if (!refreshed.ok) {
       setAppliedCoupon(null)
       setCouponError(refreshed.message)
@@ -399,7 +433,7 @@ const Checkout = () => {
         ? prev
         : refreshed
     )
-  }, [cartTotal]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cartTotal, isFirstOrder]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onApplyCoupon = async (e) => {
     e?.preventDefault?.()
@@ -455,7 +489,9 @@ const Checkout = () => {
 
   const onChange = (e) => {
     const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+    const nextValue =
+      name === 'phone' ? value.replace(/\D/g, '').slice(0, 10) : value
+    setForm((prev) => ({ ...prev, [name]: nextValue }))
     if (errors[name]) {
       setErrors((prev) => {
         const next = { ...prev }
@@ -465,37 +501,61 @@ const Checkout = () => {
     }
   }
 
+  const focusCheckoutField = (name) => {
+    const el = document.querySelector(
+      `#checkout-form [name="${name}"], .checkout-page [name="${name}"]`
+    )
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (typeof el.focus === 'function') {
+      window.setTimeout(() => el.focus({ preventScroll: true }), 280)
+    }
+  }
+
   const validate = () => {
-    const next = {}
-    if (!form.name.trim()) next.name = 'Name is required'
-    if (!form.email.trim() || !/^\S+@\S+\.\S+$/.test(form.email)) {
-      next.email = 'Valid email is required'
-    }
-    if (!/^[6-9]\d{9}$/.test(form.phone.replace(/\s/g, ''))) {
-      next.phone = 'Enter a valid 10-digit mobile'
-    }
-    if (!form.address.trim() || form.address.trim().length < 8) {
-      next.address = 'Full address is required'
-    }
-    if (!form.city.trim()) next.city = 'City is required'
-    if (!form.state) next.state = 'State is required'
-    if (!/^\d{6}$/.test(form.pincode.trim())) {
-      next.pincode = 'Enter a 6-digit pincode'
-    }
-    if (!payment || !PAYMENTS.some((p) => p.id === payment)) {
-      next.payment = 'Select a payment method'
-    }
+    const next = validateCheckoutForm(
+      form,
+      payment,
+      PAYMENTS.map((p) => p.id)
+    )
     setErrors(next)
     return Object.keys(next).length === 0
   }
 
   const placeOrder = async (e) => {
     e?.preventDefault?.()
-    if (!canPlaceOrder || !validate()) return
+    if (!cart.length || placing) return
+
+    if (!payment) {
+      setErrors((prev) => ({ ...prev, payment: 'Select a payment method' }))
+      setPlaceError('Select a payment method before placing the order')
+      return
+    }
+
+    const phoneMsg = mobileValidationMessage(form.phone)
+    if (phoneMsg) {
+      setPlaceError('')
+      validate()
+      focusCheckoutField('phone')
+      return
+    }
+
+    const fieldErrors = validateCheckoutForm(
+      form,
+      payment,
+      PAYMENTS.map((p) => p.id)
+    )
+    if (Object.keys(fieldErrors).length) {
+      setErrors(fieldErrors)
+      setPlaceError('')
+      focusCheckoutField(firstCheckoutErrorField(fieldErrors))
+      return
+    }
 
     setPlacing(true)
     setPlaceError('')
 
+    const phone = digitsPhone(form.phone)
     const localId = makeOrderId()
     const placed = {
       id: localId,
@@ -517,10 +577,12 @@ const Checkout = () => {
       userEmail: (user?.email || form.email).trim().toLowerCase(),
       userId: user?.id || user?._id || null,
       name: form.name.trim(),
-      phone: form.phone.trim(),
+      phone,
       city: form.city.trim(),
       state: form.state,
-      pincode: form.pincode.trim(),
+      pincode: String(form.pincode || '')
+        .replace(/\D/g, '')
+        .slice(0, 6),
       address: form.address.trim(),
       landmark: form.landmark.trim(),
       notes: form.notes.trim(),
@@ -757,23 +819,40 @@ const Checkout = () => {
 
             <div className="checkout-shell__grid">
               <div className="checkout-main">
-                {shipLeft > 0 ? (
-                  <div className="checkout-offer checkout-offer--ship">
-                    <TruckIcon size={16} />
-                    <p>
-                      Add <strong>{formatPrice(shipLeft)}</strong> more for free
-                      delivery
-                    </p>
-                    <div className="checkout-offer__bar" aria-hidden="true">
-                      <span style={{ width: `${shipProgress}%` }} />
-                    </div>
-                  </div>
-                ) : (
+                {isFirstOrder || shipping === 0 ? (
                   <div className="checkout-offer checkout-offer--free">
                     <TruckIcon size={15} />
                     <p>
-                      <strong>Free delivery</strong> on this order
+                      {isFirstOrder ? (
+                        <>
+                          <strong>First order:</strong> free delivery + ₹
+                          {FIRST_ORDER_DISCOUNT} off
+                        </>
+                      ) : (
+                        <>
+                          <strong>Free delivery</strong> on this order
+                        </>
+                      )}
                     </p>
+                  </div>
+                ) : (
+                  <div className="checkout-offer checkout-offer--ship">
+                    <TruckIcon size={16} />
+                    <p>
+                      Delivery <strong>{formatPrice(SHIPPING_FEE)}</strong>
+                      {shipLeft > 0 ? (
+                        <>
+                          {' '}
+                          · add <strong>{formatPrice(shipLeft)}</strong> more for
+                          free
+                        </>
+                      ) : null}
+                    </p>
+                    {shipLeft > 0 ? (
+                      <div className="checkout-offer__bar" aria-hidden="true">
+                        <span style={{ width: `${shipProgress}%` }} />
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
@@ -941,7 +1020,9 @@ const Checkout = () => {
                         )}
                       </label>
                       <label className="checkout-field">
-                        <span>Mobile</span>
+                        <span>
+                          Mobile <em aria-hidden="true">*</em>
+                        </span>
                         <input
                           name="phone"
                           value={form.phone}
@@ -949,6 +1030,9 @@ const Checkout = () => {
                           autoComplete="tel"
                           inputMode="numeric"
                           placeholder="10-digit mobile"
+                          required
+                          maxLength={10}
+                          aria-required="true"
                         />
                         {errors.phone && (
                           <em className="checkout-error">{errors.phone}</em>
@@ -1153,7 +1237,6 @@ const Checkout = () => {
                       aria-required="true"
                     >
                       {PAYMENTS.map((option) => {
-                        const PayIcon = option.Icon
                         const active = payment === option.id
                         return (
                           <div
@@ -1182,12 +1265,6 @@ const Checkout = () => {
                                 className="checkout-pay-mode__radio"
                                 aria-hidden="true"
                               />
-                              <span
-                                className="checkout-pay-mode__icon"
-                                aria-hidden="true"
-                              >
-                                <PayIcon size={22} />
-                              </span>
                               <span className="checkout-pay-mode__text">
                                 <strong>{option.title}</strong>
                                 <em>{option.short}</em>
@@ -1205,9 +1282,33 @@ const Checkout = () => {
                               aria-hidden={!active}
                             >
                               <div className="checkout-pay-mode__panel-inner">
-                                <span className="checkout-pay-mode__hint">
-                                  {option.desc}
-                                </span>
+                                {option.brands?.length ? (
+                                  <div
+                                    className="checkout-pay-mode__brands"
+                                    aria-label="Supported UPI apps"
+                                  >
+                                    {option.brands.map((brand) => (
+                                      <span
+                                        key={brand.id}
+                                        className="checkout-pay-mode__brand"
+                                        title={brand.label}
+                                        aria-label={brand.label}
+                                      >
+                                        <img
+                                          src={brand.src}
+                                          alt=""
+                                          width={28}
+                                          height={28}
+                                          decoding="async"
+                                        />
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : option.desc ? (
+                                  <span className="checkout-pay-mode__hint">
+                                    {option.desc}
+                                  </span>
+                                ) : null}
                                 {option.id === 'cod' ? (
                                   <span className="checkout-pay-mode__badge">
                                     No online payment needed
@@ -1240,7 +1341,11 @@ const Checkout = () => {
                       </div>
                       {discount > 0 && (
                         <div className="checkout-summary__discount">
-                          <span>Coupon discount</span>
+                          <span>
+                            {appliedCoupon?.discount >= autoWelcome
+                              ? 'Coupon discount'
+                              : 'First-order discount'}
+                          </span>
                           <span>−{formatPrice(discount)}</span>
                         </div>
                       )}
@@ -1250,10 +1355,30 @@ const Checkout = () => {
                           {shipping === 0 ? 'FREE' : formatPrice(shipping)}
                         </span>
                       </div>
+                      {gst.gstType === 'igst' ? (
+                        <div>
+                          <span>IGST ({GST_RATE_PERCENT}%)</span>
+                          <span>{formatPrice(gst.igstAmount)}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <span>CGST ({GST_RATE_PERCENT / 2}%)</span>
+                            <span>{formatPrice(gst.cgstAmount)}</span>
+                          </div>
+                          <div>
+                            <span>SGST ({GST_RATE_PERCENT / 2}%)</span>
+                            <span>{formatPrice(gst.sgstAmount)}</span>
+                          </div>
+                        </>
+                      )}
                       <div className="checkout-summary__payable">
                         <span>Total</span>
                         <strong>{formatPrice(payable)}</strong>
                       </div>
+                      <p className="checkout-summary__gst-note">
+                        Including GST ({GST_RATE_PERCENT}%)
+                      </p>
                     </div>
                   </section>
 
@@ -1270,7 +1395,7 @@ const Checkout = () => {
                     type="submit"
                     form="checkout-form"
                     className="checkout-summary__cta"
-                    disabled={!canPlaceOrder}
+                    disabled={!canAttemptOrder}
                   >
                     {placing
                       ? 'Placing order…'
@@ -1291,10 +1416,10 @@ const Checkout = () => {
 
         <div className="checkout-mobile-bar">
           <div className="checkout-mobile-bar__total">
-            <span>Total</span>
+            <span>Total (incl. GST)</span>
             <strong>{formatPrice(payable)}</strong>
           </div>
-          <button type="button" disabled={!canPlaceOrder} onClick={placeOrder}>
+          <button type="button" disabled={!canAttemptOrder} onClick={placeOrder}>
             {placing ? 'Placing…' : 'Place order'}
           </button>
         </div>

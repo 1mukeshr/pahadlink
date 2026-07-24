@@ -88,7 +88,6 @@ const Footer = () => {
             <h4>Help</h4>
             <ul>
               <li><Link to={ROUTES.CONTACT}>Contact us</Link></li>
-              <li><Link to={`${ROUTES.HOME}#faq`}>FAQs</Link></li>
               <li><Link to={ROUTES.REFUNDS}>Shipping & returns</Link></li>
               <li><Link to={ROUTES.ORDERS}>Track order</Link></li>
               <li>
@@ -148,7 +147,6 @@ const Footer = () => {
               <Link to={ROUTES.PRIVACY}>Privacy</Link>
               <Link to={ROUTES.REFUNDS}>Refunds</Link>
               <Link to={ROUTES.CONTACT}>Contact</Link>
-              <Link to={`${ROUTES.HOME}#faq`}>FAQs</Link>
             </nav>
             <div className="footer-social" aria-label="Social media">
               {SOCIAL_LINKS.map(({ label, href, Icon }) => (

@@ -1,6 +1,6 @@
 # PahadLink
 
-Himalayan products store - React + Express + MongoDB (`Pahadi_link`).
+Himalayan products store - React + Express + MongoDB (`Pahadi_link_DB`).
 
 ## Quick start (local)
 
@@ -13,7 +13,7 @@ npm start
 
 - Website: http://localhost:5173  
 - API: http://localhost:5000/api/health  
-- DB: `mongodb://127.0.0.1:27017/Pahadi_link`  
+- DB: `mongodb://127.0.0.1:27017/Pahadi_link_DB`  
 - Admin: `admin` / `admin123`
 
 ## GitHub Pages + real backend (required for login/register online)
@@ -24,8 +24,8 @@ GitHub Pages is **static** - it cannot run Express or MongoDB. You need a hosted
 
 1. Create a free cluster at [mongodb.com/atlas](https://www.mongodb.com/atlas)
 2. Database user + Network Access → allow `0.0.0.0/0` (or Render IPs)
-3. Connection string, DB name **`Pahadi_link`**:
-   `mongodb+srv://USER:PASS@CLUSTER.mongodb.net/Pahadi_link?retryWrites=true&w=majority`
+3. Connection string, DB name **`Pahadi_link_DB`**:
+   `mongodb+srv://USER:PASS@CLUSTER.mongodb.net/Pahadi_link_DB?retryWrites=true&w=majority`
 
 ### 2) Deploy API on Render (no Atlas required)
 

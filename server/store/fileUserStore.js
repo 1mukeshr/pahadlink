@@ -40,6 +40,7 @@ function toSafeJSON(user) {
     role: user.role,
     phone: user.phone || null,
     isPhoneVerified: Boolean(user.isPhoneVerified),
+    hasGoogle: Boolean(user.googleId),
     createdAt: user.createdAt,
   }
 }

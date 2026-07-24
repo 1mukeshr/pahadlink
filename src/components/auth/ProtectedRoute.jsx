@@ -18,9 +18,16 @@ const ProtectedRoute = ({ children, roles, intent }) => {
       intent ||
       (location.pathname.startsWith('/checkout') ? 'checkout' : 'auth')
 
+    const needsAdminLogin =
+      location.pathname.startsWith('/admin') ||
+      (Array.isArray(roles) &&
+        roles.includes('admin') &&
+        !roles.includes('customer') &&
+        !roles.includes('seller'))
+
     return (
       <Navigate
-        to={ROUTES.LOGIN}
+        to={needsAdminLogin ? ROUTES.ADMIN_LOGIN : ROUTES.LOGIN}
         replace
         state={{ from, intent: resolvedIntent }}
       />

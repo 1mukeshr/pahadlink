@@ -93,7 +93,7 @@ export const policies = {
         heading: 'Delivery',
         body: [
           'Most orders are delivered in 2-5 days across India. Remote hill locations may take longer.',
-          'Free shipping applies on eligible orders above ₹499. Shipping charges, if any, are shown before payment.',
+          'First order: free delivery + ₹75 off. Later orders: free shipping above ₹499, otherwise ₹39. Charges are shown before payment.',
           'Delivery timelines are estimates and may vary due to courier or weather conditions.',
         ],
       },

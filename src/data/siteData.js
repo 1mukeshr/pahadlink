@@ -20,6 +20,7 @@ import packBalMithai from '../assets/images/products/pack-bal-mithai.png'
 import packHerbalTea from '../assets/images/products/pack-herbal-tea.png'
 import packBuranshSquash from '../assets/images/products/pack-buransh-squash.png'
 import packPahadiTopi from '../assets/images/products/pack-pahadi-topi.png'
+import packPahadiPichodi from '../assets/images/products/pack-pahadi-pichodi.png'
 import packRingaalBasket from '../assets/images/products/pack-ringaal-basket.png'
 import packJhangora from '../assets/images/products/pack-jhangora.png'
 import packFestivalHamper from '../assets/images/products/pack-festival-hamper.png'
@@ -64,8 +65,8 @@ export const homeOffers = [
   {
     id: 'first-order',
     eyebrow: 'First order only',
-    title: 'Save 15% on hill-fresh staples',
-    text: 'Welcome offer for new customers. Free shipping above ₹499.',
+    title: 'Flat ₹75 off + free delivery',
+    text: 'Welcome offer for new customers. Later orders: delivery from ₹39.',
     code: 'PAHAD15',
     cta: 'Shop the offer',
     href: '/shop?tag=bestseller',
@@ -76,7 +77,7 @@ export const homeOffers = [
     id: 'free-ship',
     eyebrow: 'Delivery',
     title: 'Free shipping above ₹499',
-    text: 'Pan-India delivery on everyday hill staples.',
+    text: 'Repeat orders: ₹39 delivery below ₹499. First order always free.',
     cta: 'Browse shop',
     href: '/shop',
     image: offerFreeShip,
@@ -126,10 +127,11 @@ export const categoryGroups = [
     id: 'clothing',
     name: 'Pahadi Clothing',
     headline: 'Wear the craft of the hills',
-    blurb: 'Pahadi topi, handwoven fabrics, and warm pieces made with traditional skill.',
+    blurb: 'Pahadi topi, pichodi, handwoven fabrics, and warm pieces made with traditional skill.',
     banner: categoryBannerClothing,
     items: [
       { name: 'Pahadi Topi', icon: 'hat' },
+      { name: 'Pahadi Pichodi', icon: 'shawl' },
       { name: 'Woolen Shawls', icon: 'shawl' },
       { name: 'Traditional Wear', icon: 'dress' },
       { name: 'Handwoven Fabric', icon: 'fabric' },
@@ -291,6 +293,29 @@ const PRODUCT_PRESENTATION = {
     tags: ['handpicked'],
     categoryId: 'clothing',
     subcategory: 'Pahadi Topi',
+  },
+  'pahadi-pichodi': {
+    image: packPahadiPichodi,
+    compareAt: 699,
+    rating: 4.8,
+    tags: ['bestseller', 'handpicked', 'trending'],
+    categoryId: 'clothing',
+    subcategory: 'Pahadi Pichodi',
+    description:
+      'Authentic Rangwali Pahadi Pichodi (Pichoda) from Kumaon — saffron-orange cloth with deep red print, central shankha motif, floral block work, and gold sequin / gota border. A ceremonial wrap for weddings and festivals, finished by hill artisans.',
+    highlights: [
+      'Traditional Kumaoni Rangwali Pichodi',
+      'Saffron-orange body with red print & shankha motif',
+      'Gold sequin and gota border finish',
+      'Ideal for weddings, festivals, and gifting',
+    ],
+    details: [
+      { label: 'Category', value: 'Pahadi Clothing' },
+      { label: 'Type', value: 'Pahadi Pichodi / Rangwali Pichoda' },
+      { label: 'Colour', value: 'Saffron orange with red border' },
+      { label: 'Origin', value: 'Kumaon, Uttarakhand' },
+      { label: 'Fit', value: 'Free size wrap' },
+    ],
   },
   'ringaal-basket': {
     image: packRingaalBasket,

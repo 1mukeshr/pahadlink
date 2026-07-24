@@ -1,16 +1,20 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   fetchInventory,
   fetchOrders,
   fetchOrderStats,
   STATUS_LABELS,
   updateOrder,
+  buildDeliveryActivity,
+  paymentStatusLabel,
 } from '../services/orderService'
 import { getProductById } from '../data/siteData'
 import { ROUTES } from '../config'
-import { CopyIcon, CheckIcon, SearchIcon } from '../components/icons'
+import { CopyIcon, CheckIcon, SearchIcon, RefreshIcon, PrintIcon, DownloadIcon } from '../components/icons'
+import OrderInvoice, { downloadOrderInvoice } from '../components/orders/OrderInvoice'
 import AdminLayout from './AdminLayout'
+import { GST_RATE_PERCENT, splitInclusiveGst, allocateGst } from '../data/gst'
 import {
   StatusDonut,
   OrdersBarChart,
@@ -44,11 +48,26 @@ const formatDate = (iso) => {
   }
 }
 
-const stockLevel = (qty) => {
-  const n = Number(qty) || 0
-  if (n <= 0) return 'out'
-  if (n <= 5) return 'low'
-  return 'ok'
+/** PahadLink track stamp: Wed, 22 Jul · 2:30 pm */
+const formatTrackStamp = (iso) => {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const day = d.toLocaleDateString('en-IN', { weekday: 'short' })
+    const date = d.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+    })
+    const time = d.toLocaleTimeString('en-IN', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+    return `${day}, ${date} · ${time}`
+  } catch {
+    return ''
+  }
 }
 
 const productTitle = (productId) => {
@@ -62,6 +81,33 @@ const productImage = (productId) => getProductById(productId)?.image || ''
 const productCategory = (productId) =>
   getProductById(productId)?.categoryName || 'Product'
 
+const paymentMethodLabel = (method) => {
+  const map = {
+    cod: 'Cash on Delivery',
+    upi: 'UPI',
+    netbanking: 'Net Banking',
+    wallet: 'Wallet',
+    razorpay: 'Online',
+  }
+  const key = String(method || '').toLowerCase()
+  return map[key] || (method ? String(method).toUpperCase() : '—')
+}
+
+const formatShipLine = (order) => {
+  const addr = order?.shippingAddress || {}
+  const parts = []
+  const push = (value) => {
+    const s = String(value || '').trim()
+    if (!s) return
+    if (parts.join(' ').toLowerCase().includes(s.toLowerCase())) return
+    parts.push(s)
+  }
+  push(addr.line1)
+  push(addr.city)
+  push(addr.state)
+  push(addr.pincode)
+  return parts.join(', ')
+}
 
 const ADMIN_NEXT = {
   pending: [
@@ -128,7 +174,7 @@ export default function OrdersDesk({
   const isAdmin = mode === 'admin'
   const showDashboard = view === 'full' || view === 'dashboard'
   const showOrders = view === 'full' || view === 'orders'
-  const showInventory = isAdmin && (view === 'full' || view === 'orders')
+  const showInventory = isAdmin && (view === 'full' || view === 'orders' || view === 'dashboard')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const title =
@@ -156,12 +202,12 @@ export default function OrdersDesk({
   const [trackDrafts, setTrackDrafts] = useState({})
   const [message, setMessage] = useState('')
   const [copiedId, setCopiedId] = useState('')
-  const [invQuery, setInvQuery] = useState('')
-  const [invFilter, setInvFilter] = useState('all') // all | low | out
   const [orderPage, setOrderPage] = useState(1)
   const [updatedAt, setUpdatedAt] = useState(null)
   const [period, setPeriod] = useState('week')
-  const [itemsPopup, setItemsPopup] = useState(null)
+  const [detailOrder, setDetailOrder] = useState(null)
+  const [invoiceOpen, setInvoiceOpen] = useState(false)
+  const [invoiceDownloading, setInvoiceDownloading] = useState(false)
   const ORDER_PAGE_SIZE = 8
 
   useEffect(() => {
@@ -170,13 +216,21 @@ export default function OrdersDesk({
   }, [query])
 
   useEffect(() => {
-    if (!itemsPopup) return undefined
+    if (!detailOrder) return undefined
     const onKey = (e) => {
-      if (e.key === 'Escape') setItemsPopup(null)
+      if (e.key === 'Escape') {
+        if (invoiceOpen) setInvoiceOpen(false)
+        else setDetailOrder(null)
+      }
     }
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [itemsPopup])
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [detailOrder, invoiceOpen])
 
   useEffect(() => {
     if (view !== 'orders') return
@@ -210,6 +264,14 @@ export default function OrdersDesk({
       setAllOrders(analytics)
       setStats(st)
       setUpdatedAt(new Date())
+      setDetailOrder((prev) => {
+        if (!prev) return null
+        return (
+          analytics.find((o) => o.id === prev.id) ||
+          list.find((o) => o.id === prev.id) ||
+          null
+        )
+      })
 
       if (isAdmin) {
         try {
@@ -305,52 +367,6 @@ export default function OrdersDesk({
     return rows
   }, [stats, isAdmin])
 
-  const inventoryRows = useMemo(() => {
-    const q = invQuery.trim().toLowerCase()
-    return inventory
-      .map((item) => {
-        const sizes = item.stockBySize
-          ? Object.entries(item.stockBySize).map(([size, qty]) => ({
-              size,
-              qty: Number(qty) || 0,
-              level: stockLevel(qty),
-            }))
-          : null
-        const total = sizes
-          ? sizes.reduce((s, r) => s + r.qty, 0)
-          : Number(item.stock) || 0
-        const level = sizes
-          ? sizes.some((r) => r.level === 'out')
-            ? sizes.every((r) => r.level === 'out')
-              ? 'out'
-              : 'low'
-            : sizes.some((r) => r.level === 'low')
-              ? 'low'
-              : 'ok'
-          : stockLevel(total)
-        const name = productTitle(item.productId)
-        return {
-          ...item,
-          name,
-          image: productImage(item.productId),
-          category: productCategory(item.productId),
-          sizes,
-          total,
-          level,
-        }
-      })
-      .filter((row) => {
-        if (invFilter === 'low' && row.level !== 'low') return false
-        if (invFilter === 'out' && row.level !== 'out') return false
-        if (!q) return true
-        return (
-          row.productId.toLowerCase().includes(q) ||
-          row.name.toLowerCase().includes(q) ||
-          row.category.toLowerCase().includes(q)
-        )
-      })
-  }, [inventory, invQuery, invFilter])
-
   const invStats = useMemo(() => {
     let low = 0
     let out = 0
@@ -399,7 +415,6 @@ export default function OrdersDesk({
       razorpay: '#2f6fa8',
       cod: '#b86a12',
       upi: '#127048',
-      card: '#5b6fd4',
       other: '#6b8075',
     }
     return buildPaymentSeries(allOrders).map((row) => ({
@@ -488,15 +503,53 @@ export default function OrdersDesk({
   const safeOrderPage = Math.min(orderPage, orderPageCount)
   const orderPageStart = (safeOrderPage - 1) * ORDER_PAGE_SIZE
   const pagedOrders = orders.slice(orderPageStart, orderPageStart + ORDER_PAGE_SIZE)
-  const orderRangeEnd = Math.min(orderPageStart + ORDER_PAGE_SIZE, orders.length)
 
   const desk = (
     <>
       <div className="admin-desk">
-      <header className="admin-head">
+      <header className={`admin-head${showOrders ? ' admin-head--with-search' : ''}`}>
         <div className="admin-head__copy">
           <h1>{title}</h1>
         </div>
+        {showOrders && (
+          <div className="admin-head__search">
+            <form
+              className="admin-toolbar"
+              onSubmit={(e) => {
+                e.preventDefault()
+                setDebouncedQuery(query.trim())
+              }}
+            >
+              <label className="admin-toolbar__search">
+                <span className="admin-toolbar__search-ico" aria-hidden="true">
+                  <SearchIcon size={16} />
+                </span>
+                <input
+                  type="search"
+                  placeholder="Search order, name, email, tracking"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label="Search orders"
+                />
+                {(query || statusFilter) && (
+                  <button
+                    type="button"
+                    className="admin-toolbar__clear"
+                    onClick={() => {
+                      setQuery('')
+                      setDebouncedQuery('')
+                      setFilter('')
+                    }}
+                    aria-label="Clear search and filters"
+                    title="Clear"
+                  >
+                    ×
+                  </button>
+                )}
+              </label>
+            </form>
+          </div>
+        )}
         <div className="admin-head__actions">
           <div className="admin-period" role="group" aria-label="Time range">
             {PERIOD_OPTIONS.map((opt) => (
@@ -521,11 +574,15 @@ export default function OrdersDesk({
           )}
           <button
             type="button"
-            className="admin-btn admin-btn--ghost"
+            className={`admin-btn admin-btn--ghost admin-btn--icon${
+              loading ? ' is-spinning' : ''
+            }`}
             onClick={load}
             disabled={loading}
+            aria-label={loading ? 'Refreshing orders' : 'Refresh orders'}
+            title={loading ? 'Refreshing…' : 'Refresh'}
           >
-            {loading ? 'Refreshing…' : 'Refresh'}
+            <RefreshIcon size={16} />
           </button>
           {view === 'dashboard' && isAdmin && (
             <button
@@ -567,7 +624,7 @@ export default function OrdersDesk({
                 <KpiSpark
                   values={daily.map((d) => d.revenue)}
                   labels={daily.map((d) => d.label)}
-                  tone="light"
+                  tone="money"
                 />
               </div>
               <strong>{formatPrice(stats.revenue)}</strong>
@@ -741,75 +798,23 @@ export default function OrdersDesk({
 
       {showOrders && (
       <section className="admin-orders-section">
-        <header className="admin-orders-section__head">
-          <div>
-            <h2>{isAdmin ? 'Orders' : 'Your orders'}</h2>
-            <p>
-              {isAdmin
-                ? 'Search, filter, and update order status'
-                : 'Confirm, pack, and ship customer orders'}
-            </p>
-          </div>
-          <span className="admin-orders-section__count">
-            {loading
-              ? '…'
-              : orders.length === 0
-                ? '0 shown'
-                : `${orderPageStart + 1}–${orderRangeEnd} of ${orders.length}`}
-          </span>
-        </header>
-
-        <div className="admin-chips" role="tablist" aria-label="Filter by status">
-          {chipOptions.map((chip) => (
-            <button
-              key={chip.key || 'all'}
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === chip.key}
-              className={`admin-chip${statusFilter === chip.key ? ' is-active' : ''}`}
-              onClick={() => setFilter(chip.key)}
-            >
-              {chip.label}
-              {stats ? <em>{chip.count}</em> : null}
-            </button>
-          ))}
-        </div>
-
-        <form
-          className="admin-toolbar"
-          onSubmit={(e) => {
-            e.preventDefault()
-            setDebouncedQuery(query.trim())
-          }}
-        >
-          <label className="admin-toolbar__search">
-            <span className="admin-toolbar__search-ico" aria-hidden="true">
-              <SearchIcon size={16} />
-            </span>
-            <input
-              type="search"
-              placeholder="Search order #, name, email, tracking"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Search orders"
-            />
-            {(query || statusFilter) && (
+        <div className="admin-filters-row">
+          <div className="admin-chips" role="tablist" aria-label="Filter by status">
+            {chipOptions.map((chip) => (
               <button
+                key={chip.key || 'all'}
                 type="button"
-                className="admin-toolbar__clear"
-                onClick={() => {
-                  setQuery('')
-                  setDebouncedQuery('')
-                  setFilter('')
-                }}
-                aria-label="Clear search and filters"
-                title="Clear"
+                role="tab"
+                aria-selected={statusFilter === chip.key}
+                className={`admin-chip${statusFilter === chip.key ? ' is-active' : ''}`}
+                onClick={() => setFilter(chip.key)}
               >
-                ×
+                {chip.label}
+                {stats ? <em>{chip.count}</em> : null}
               </button>
-            )}
-          </label>
-        </form>
+            ))}
+          </div>
+        </div>
 
         {error && <p className="admin-alert">{error}</p>}
         {message && (
@@ -855,20 +860,7 @@ export default function OrdersDesk({
                     order.status === 'confirmed'
                   const itemSummary = (order.items || []).slice(0, 2)
                   const extraItems = Math.max(0, (order.items || []).length - 2)
-                  const addr = order.shippingAddress || {}
-                  const shipParts = []
-                  const pushShip = (value) => {
-                    const s = String(value || '').trim()
-                    if (!s) return
-                    const joined = shipParts.join(' ').toLowerCase()
-                    if (joined.includes(s.toLowerCase())) return
-                    shipParts.push(s)
-                  }
-                  pushShip(addr.line1)
-                  pushShip(addr.city)
-                  pushShip(addr.state)
-                  pushShip(addr.pincode)
-                  const shipLine = shipParts.join(', ')
+                  const shipLine = formatShipLine(order)
                   const showDetail =
                     showTracking ||
                     Boolean(order.returnReason) ||
@@ -879,7 +871,14 @@ export default function OrdersDesk({
                       <tr className="admin-table__row">
                         <td>
                           <div className="admin-card__id">
-                            <strong>{order.orderNumber}</strong>
+                            <button
+                              type="button"
+                              className="admin-card__id-btn"
+                              onClick={() => setDetailOrder(order)}
+                              title="View order details"
+                            >
+                              <strong>{order.orderNumber}</strong>
+                            </button>
                             <button
                               type="button"
                               className={`admin-card__copy${
@@ -933,12 +932,7 @@ export default function OrdersDesk({
                                 <button
                                   type="button"
                                   className="admin-card__more"
-                                  onClick={() =>
-                                    setItemsPopup({
-                                      orderNumber: order.orderNumber,
-                                      items: order.items || [],
-                                    })
-                                  }
+                                  onClick={() => setDetailOrder(order)}
                                 >
                                   +{extraItems} more
                                 </button>
@@ -1102,219 +1096,429 @@ export default function OrdersDesk({
       </section>
       )}
 
-      {showInventory && inventory.length > 0 && (
-        <section className="admin-inventory" aria-labelledby="admin-inv-title">
-          <header className="admin-inventory__head">
-            <div className="admin-inventory__head-copy">
-              <h2 id="admin-inv-title">Inventory</h2>
-            </div>
-            <div className="admin-inventory__stats" aria-label="Inventory summary">
-              <div>
-                <em>Total</em>
-                <strong>{invStats.total}</strong>
-              </div>
-              <div className="is-low">
-                <em>Low</em>
-                <strong>{invStats.low}</strong>
-              </div>
-              <div className="is-out">
-                <em>Out</em>
-                <strong>{invStats.out}</strong>
-              </div>
-            </div>
-          </header>
-
-          <div className="admin-inventory__controls">
-            <div className="admin-inventory__filters">
-              <button
-                type="button"
-                className={`admin-chip${invFilter === 'all' ? ' is-active' : ''}`}
-                onClick={() => setInvFilter('all')}
-              >
-                All
-                <em>{invStats.total}</em>
-              </button>
-              <button
-                type="button"
-                className={`admin-chip${invFilter === 'low' ? ' is-active' : ''}`}
-                onClick={() => setInvFilter('low')}
-              >
-                Low
-                <em>{invStats.low}</em>
-              </button>
-              <button
-                type="button"
-                className={`admin-chip${invFilter === 'out' ? ' is-active' : ''}`}
-                onClick={() => setInvFilter('out')}
-              >
-                Out
-                <em>{invStats.out}</em>
-              </button>
-            </div>
-
-            <label className="admin-inventory__search">
-              <span className="admin-inventory__search-ico" aria-hidden="true">
-                <SearchIcon size={15} />
-              </span>
-              <input
-                type="search"
-                placeholder="Search name, id, category"
-                value={invQuery}
-                onChange={(e) => setInvQuery(e.target.value)}
-                aria-label="Search inventory"
-              />
-              {invQuery ? (
-                <button
-                  type="button"
-                  className="admin-inventory__search-clear"
-                  onClick={() => setInvQuery('')}
-                  aria-label="Clear search"
-                >
-                  ×
-                </button>
-              ) : null}
-            </label>
+      {showInventory && (
+        <section className="admin-inv-teaser" aria-labelledby="admin-inv-title">
+          <div className="admin-inv-teaser__copy">
+            <h2 id="admin-inv-title">Inventory</h2>
+            <p>
+              {invStats.total} products
+              {invStats.low ? ` · ${invStats.low} low` : ''}
+              {invStats.out ? ` · ${invStats.out} out` : ''}
+            </p>
           </div>
-
-          {inventoryRows.length === 0 ? (
-            <p className="admin-empty">No products match this inventory filter.</p>
-          ) : (
-            <div className="admin-inventory__board">
-              <div className="admin-inventory__cols" aria-hidden="true">
-                <span>Product</span>
-                <span>Stock by size</span>
-                <span>Status</span>
-              </div>
-              <ul className="admin-inventory__list">
-                {inventoryRows.map((row) => (
-                  <li
-                    key={row.productId}
-                    className={`admin-inv-row admin-inv-row--${row.level}`}
-                  >
-                    <div className="admin-inv-row__product">
-                      <div className="admin-inv-row__thumb" aria-hidden="true">
-                        {row.image ? (
-                          <img src={row.image} alt="" />
-                        ) : (
-                          <span>{row.name.slice(0, 1)}</span>
-                        )}
-                      </div>
-                      <div className="admin-inv-row__meta">
-                        <strong title={row.name}>{row.name}</strong>
-                        <span>
-                          {row.category}
-                          <code>{row.productId}</code>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="admin-inv-row__stock">
-                      {row.sizes ? (
-                        <div className="admin-inv-sizes">
-                          {row.sizes.map((s) => (
-                            <span
-                              key={s.size}
-                              className={`admin-inv-size admin-inv-size--${s.level}`}
-                              title={`${s.size}: ${s.qty}`}
-                            >
-                              <em>{s.size}</em>
-                              <strong>{s.qty}</strong>
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span
-                          className={`admin-inv-total admin-inv-total--${row.level}`}
-                        >
-                          {row.total} units
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="admin-inv-row__side">
-                      <span
-                        className={`admin-badge admin-badge--inv-${row.level}`}
-                      >
-                        {row.level === 'out'
-                          ? 'Out'
-                          : row.level === 'low'
-                            ? 'Low'
-                            : 'In stock'}
-                      </span>
-                      <strong>
-                        {row.total}
-                        <em>units</em>
-                      </strong>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div className="admin-inv-teaser__chart">
+            <StockHealthBar
+              ok={Math.max(0, invStats.total - invStats.low - invStats.out)}
+              low={invStats.low}
+              out={invStats.out}
+            />
+          </div>
+          <Link to={ROUTES.ADMIN_INVENTORY} className="admin-btn admin-btn--brand">
+            Open inventory
+          </Link>
         </section>
       )}
       </div>
 
-      {itemsPopup && (
-        <div className="admin-items-popup" role="dialog" aria-modal="true">
-          <button
-            type="button"
-            className="admin-items-popup__backdrop"
-            aria-label="Close items"
-            onClick={() => setItemsPopup(null)}
-          />
-          <div className="admin-items-popup__panel">
-            <header className="admin-items-popup__head">
-              <div>
-                <p className="admin-items-popup__kicker">Order items</p>
-                <h2>{itemsPopup.orderNumber}</h2>
-              </div>
-              <button
-                type="button"
-                className="admin-btn admin-btn--ghost"
-                onClick={() => setItemsPopup(null)}
-              >
-                Close
-              </button>
-            </header>
-            <ul className="admin-items-popup__list">
-              {itemsPopup.items.map((item, idx) => {
-                const qty = Number(item.quantity) || 1
-                const price = Number(item.price) || 0
-                const line = price * qty
-                return (
-                  <li key={`${itemsPopup.orderNumber}-full-${idx}`}>
-                    <div className="admin-items-popup__main">
-                      <strong title={item.name}>{item.name}</strong>
-                      <span>
-                        {item.size ? `Size ${item.size}` : 'Standard'}
-                        {' · '}
-                        Qty {qty}
-                      </span>
-                    </div>
-                    <div className="admin-items-popup__price">
-                      {price > 0 ? (
-                        <>
-                          <em>
-                            {formatPrice(price)} × {qty}
-                          </em>
-                          <strong>{formatPrice(line)}</strong>
-                        </>
+      {detailOrder && (() => {
+        const order = detailOrder
+        const actions = nextMap[order.status] || []
+        const draft = trackDrafts[order.id] || {
+          trackingNumber: order.trackingNumber || '',
+          courier: order.courier || '',
+        }
+        const shipLine = formatShipLine(order)
+        const activity = buildDeliveryActivity(order)
+        const items = order.items || []
+        const itemsTotal =
+          Number(order.itemsTotal) ||
+          items.reduce(
+            (sum, item) =>
+              sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+            0
+          )
+        const shippingFee = Number(order.shippingFee) || 0
+        const discount = Number(order.discountAmount) || 0
+        const total = Number(order.totalAmount) || itemsTotal + shippingFee - discount
+        const shipState = order.shippingAddress?.state || ''
+        const gstFallback = (() => {
+          const taxableBase = Math.max(0, itemsTotal - discount + shippingFee)
+          if (order.pricesIncludeGst === false || order.gstAmount != null) {
+            const gstAmount =
+              order.gstAmount != null
+                ? Number(order.gstAmount)
+                : Math.round(taxableBase * (Number(order.gstRate) || 0.05))
+            const taxableValue =
+              order.taxableValue != null
+                ? Number(order.taxableValue)
+                : taxableBase
+            return {
+              taxableValue,
+              ...allocateGst(gstAmount, { shippingState: shipState }),
+            }
+          }
+          const split = splitInclusiveGst(total, Number(order.gstRate) || 0.05)
+          return {
+            taxableValue: split.taxableValue,
+            ...allocateGst(split.gstAmount, { shippingState: shipState }),
+          }
+        })()
+        const gstRatePct =
+          order.gstRate != null
+            ? Math.round(Number(order.gstRate) * 1000) / 10
+            : GST_RATE_PERCENT
+        const gstType = order.gstType || gstFallback.gstType
+        const cgstAmount =
+          order.cgstAmount != null
+            ? Number(order.cgstAmount)
+            : gstFallback.cgstAmount
+        const sgstAmount =
+          order.sgstAmount != null
+            ? Number(order.sgstAmount)
+            : gstFallback.sgstAmount
+        const igstAmount =
+          order.igstAmount != null
+            ? Number(order.igstAmount)
+            : gstFallback.igstAmount
+
+        return (
+          <div
+            className="admin-order-popup"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-order-popup-title"
+          >
+            <button
+              type="button"
+              className="admin-order-popup__backdrop"
+              aria-label="Close order details"
+              onClick={() => setDetailOrder(null)}
+            />
+            <div className="admin-order-popup__panel">
+              <header className="admin-order-popup__head">
+                <div className="admin-order-popup__head-main">
+                  <p className="admin-order-popup__kicker">Order details</p>
+                  <div className="admin-order-popup__title-row">
+                    <h2 id="admin-order-popup-title">{order.orderNumber}</h2>
+                    <button
+                      type="button"
+                      className={`admin-card__copy${
+                        copiedId === order.orderNumber ? ' is-copied' : ''
+                      }`}
+                      onClick={() => copyOrderNumber(order.orderNumber)}
+                      aria-label="Copy order number"
+                      title="Copy order number"
+                    >
+                      {copiedId === order.orderNumber ? (
+                        <CheckIcon size={13} />
                       ) : (
-                        <strong>×{qty}</strong>
+                        <CopyIcon size={13} />
+                      )}
+                    </button>
+                  </div>
+                  <p className="admin-order-popup__meta">
+                    {formatDate(order.createdAt)}
+                    <span aria-hidden="true"> · </span>
+                    <span className={`admin-badge admin-badge--${order.status}`}>
+                      {STATUS_LABELS[order.status] || order.status}
+                    </span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--ghost"
+                  onClick={() => setDetailOrder(null)}
+                >
+                  Close
+                </button>
+              </header>
+
+              <div className="admin-order-popup__grid">
+                <section className="admin-order-popup__card">
+                  <h3>Customer</h3>
+                  <p className="admin-order-popup__name">{order.customerName}</p>
+                  <p>{order.customerEmail || '—'}</p>
+                  {order.customerPhone ? <p>{order.customerPhone}</p> : null}
+                </section>
+
+                <section className="admin-order-popup__card">
+                  <h3>Payment</h3>
+                  <p className="admin-order-popup__name">
+                    {paymentMethodLabel(order.paymentMethod)}
+                  </p>
+                  <p>{paymentStatusLabel(order)}</p>
+                  {order.couponCode ? <p>Coupon {order.couponCode}</p> : null}
+                </section>
+
+                <section className="admin-order-popup__card admin-order-popup__card--wide">
+                  <h3>Ship to</h3>
+                  <p>{shipLine || 'No shipping address'}</p>
+                  {(order.courier || order.trackingNumber) && (
+                    <p className="admin-order-popup__track">
+                      {order.courier ? <strong>{order.courier}</strong> : null}
+                      {order.courier && order.trackingNumber ? ' · ' : null}
+                      {order.trackingNumber || null}
+                    </p>
+                  )}
+                  {order.notes ? <p className="admin-order-popup__notes">{order.notes}</p> : null}
+                  {order.returnReason ? (
+                    <p className="admin-order-popup__return">
+                      Return: {order.returnReason}
+                    </p>
+                  ) : null}
+                </section>
+              </div>
+
+              <section className="admin-order-popup__section">
+                <h3>Items ({items.length})</h3>
+                <ul className="admin-order-popup__items">
+                  {items.map((item, idx) => {
+                    const qty = Number(item.quantity) || 1
+                    const price = Number(item.price) || 0
+                    const image =
+                      productImage(item.productId) ||
+                      getProductById(item.productId)?.image ||
+                      ''
+                    return (
+                      <li key={`${order.id}-detail-${idx}`}>
+                        <div className="admin-order-popup__thumb" aria-hidden="true">
+                          {image ? (
+                            <img src={image} alt="" loading="lazy" />
+                          ) : (
+                            <span>{(item.name || '?').slice(0, 1)}</span>
+                          )}
+                        </div>
+                        <div className="admin-order-popup__item-main">
+                          <strong title={item.name}>{item.name}</strong>
+                          <span>
+                            {item.size ? `Size ${item.size}` : 'Standard'}
+                            {' · '}
+                            Qty {qty}
+                          </span>
+                        </div>
+                        <div className="admin-order-popup__item-price">
+                          {price > 0 ? (
+                            <>
+                              <em>
+                                {formatPrice(price)} × {qty}
+                              </em>
+                              <strong>{formatPrice(price * qty)}</strong>
+                            </>
+                          ) : (
+                            <strong>×{qty}</strong>
+                          )}
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
+
+              <div className="admin-order-popup__bottom">
+                <section className="admin-order-popup__section">
+                  {order.status === 'cancelled' ? (
+                    <div className="admin-orders-track__banner is-cancelled">
+                      <p className="admin-orders-track__brand">
+                        PahadLink delivery
+                      </p>
+                      <strong className="admin-orders-track__headline">
+                        Order cancelled
+                      </strong>
+                      {activity[0]?.at ? (
+                        <time dateTime={activity[0].at}>
+                          {formatTrackStamp(activity[0].at)}
+                        </time>
+                      ) : null}
+                      {activity[0]?.note ? (
+                        <p className="admin-orders-track__subtext">
+                          {activity[0].note}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="admin-orders-track">
+                      <header className="admin-orders-track__head">
+                        <CheckIcon size={13} aria-hidden="true" />
+                        <span>Track package</span>
+                      </header>
+                      {activity.length ? (
+                        <ol
+                          className="admin-orders-track__timeline"
+                          aria-label="Order updates"
+                        >
+                          {activity.map((ev, idx) => {
+                            const title =
+                              ev.label ||
+                              STATUS_LABELS[ev.status] ||
+                              ev.status
+                            const hint = String(ev.hint || '').trim()
+                            const note = String(ev.note || '').trim()
+                            const subtext =
+                              ev.isCurrent &&
+                              note &&
+                              note.toLowerCase() !== title.toLowerCase() &&
+                              note.toLowerCase() !== hint.toLowerCase()
+                                ? note
+                                : hint
+                            const stamp = formatTrackStamp(ev.at)
+                            const stateClass = ev.isUpcoming
+                              ? 'is-upcoming'
+                              : ev.isCurrent
+                                ? 'is-current is-latest'
+                                : 'is-past'
+                            const connectorFilled =
+                              !ev.isUpcoming && idx < activity.length - 1
+                            return (
+                              <li
+                                key={`${order.id}-tl-${ev.status}-${idx}`}
+                                className={`${stateClass}${
+                                  connectorFilled ? ' is-filled' : ''
+                                }`}
+                              >
+                                <span
+                                  className="admin-orders-track__dot"
+                                  aria-hidden="true"
+                                >
+                                  {ev.isUpcoming ? null : (
+                                    <CheckIcon size={9} />
+                                  )}
+                                </span>
+                                <div className="admin-orders-track__copy">
+                                  <div className="admin-orders-track__row">
+                                    <strong>{title}</strong>
+                                    {stamp ? (
+                                      <time dateTime={ev.at}>{stamp}</time>
+                                    ) : null}
+                                  </div>
+                                  {subtext ? (
+                                    <p className="admin-orders-track__subtext">
+                                      {subtext}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ol>
+                      ) : (
+                        <p className="admin-order-popup__empty">
+                          No timeline yet.
+                        </p>
                       )}
                     </div>
-                  </li>
-                )
-              })}
-            </ul>
-            <p className="admin-items-popup__foot">
-              {itemsPopup.items.length} item
-              {itemsPopup.items.length === 1 ? '' : 's'}
-            </p>
+                  )}
+                </section>
+
+                <section className="admin-order-popup__section">
+                  <h3>Price details</h3>
+                  <dl className="admin-order-popup__totals">
+                    <div>
+                      <dt>Items</dt>
+                      <dd>{formatPrice(itemsTotal)}</dd>
+                    </div>
+                    {discount > 0 && (
+                      <div>
+                        <dt>Discount</dt>
+                        <dd>−{formatPrice(discount)}</dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt>Delivery</dt>
+                      <dd>{shippingFee === 0 ? 'FREE' : formatPrice(shippingFee)}</dd>
+                    </div>
+                    {gstType === 'igst' ? (
+                      <div>
+                        <dt>IGST ({gstRatePct}%)</dt>
+                        <dd>{formatPrice(igstAmount)}</dd>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <dt>CGST ({gstRatePct / 2}%)</dt>
+                          <dd>{formatPrice(cgstAmount)}</dd>
+                        </div>
+                        <div>
+                          <dt>SGST ({gstRatePct / 2}%)</dt>
+                          <dd>{formatPrice(sgstAmount)}</dd>
+                        </div>
+                      </>
+                    )}
+                    <div className="admin-order-popup__payable">
+                      <dt>Total (incl. GST)</dt>
+                      <dd>{formatPrice(total)}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="admin-order-popup__actions">
+                    <button
+                      type="button"
+                      className="admin-btn"
+                      onClick={() => setInvoiceOpen(true)}
+                    >
+                      <PrintIcon size={14} />
+                      View invoice
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-btn"
+                      disabled={invoiceDownloading}
+                      onClick={async () => {
+                        setInvoiceDownloading(true)
+                        try {
+                          await downloadOrderInvoice(order)
+                        } finally {
+                          setInvoiceDownloading(false)
+                        }
+                      }}
+                    >
+                      <DownloadIcon size={14} />
+                      {invoiceDownloading ? '…' : 'PDF'}
+                    </button>
+                    {isAdmin && order.paymentStatus === 'pending' && (
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn--brand"
+                        disabled={busyId === order.id}
+                        onClick={() =>
+                          applyUpdate(order.id, { paymentStatus: 'paid' })
+                        }
+                      >
+                        Mark paid
+                      </button>
+                    )}
+                    {actions.map((action) => (
+                      <button
+                        key={action.status}
+                        type="button"
+                        className={`admin-btn${
+                          action.status === 'cancelled' ? ' admin-btn--danger' : ''
+                        }`}
+                        disabled={busyId === order.id}
+                        onClick={() =>
+                          applyUpdate(order.id, {
+                            status: action.status,
+                            courier: draft.courier || order.courier,
+                            trackingNumber:
+                              draft.trackingNumber || order.trackingNumber,
+                          })
+                        }
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
+
+      <OrderInvoice
+        order={detailOrder}
+        open={Boolean(detailOrder && invoiceOpen)}
+        onClose={() => setInvoiceOpen(false)}
+      />
     </>
   )
 

@@ -14,6 +14,7 @@ export const PRODUCT_PRICING = [
   { id: 'herbal-tea', name: 'Himalayan Herbal Tea | Mountain Blend', price: 229, sizes: ['100g', '250g'] },
   { id: 'buransh-squash', name: 'Buransh Squash | Rhododendron Drink Mix', price: 279, sizes: ['500ml', '1 L'] },
   { id: 'pahadi-topi', name: 'Pahadi Topi | Traditional Wool Cap', price: 449, sizes: ['Free size'] },
+  { id: 'pahadi-pichodi', name: 'Pahadi Pichodi | Rangwali Ceremonial Wrap', price: 599, sizes: ['Free size'] },
   { id: 'ringaal-basket', name: 'Ringaal Bamboo Basket | Handcrafted', price: 599, sizes: ['Medium', 'Large'] },
   { id: 'jhangora', name: 'Jhangora | Barnyard Millet', price: 169, sizes: ['500g', '1 kg'] },
   { id: 'festival-hamper', name: 'Festival Hamper | Honey, Sweets & Grains', price: 1299, sizes: ['Standard', 'Premium'] },

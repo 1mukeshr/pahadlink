@@ -53,7 +53,9 @@ export const ROUTES = {
   ACCOUNT: '/account',
   ORDERS: '/orders',
   ADMIN: '/admin',
+  ADMIN_LOGIN: '/admin/login',
   ADMIN_ORDERS: '/admin/orders',
+  ADMIN_INVENTORY: '/admin/inventory',
   ADMIN_LEADS: '/admin/leads',
   SELLER: '/seller',
   CONTACT: '/contact',
@@ -76,6 +78,7 @@ export const AUTH_PATHS = [
   ROUTES.REGISTER,
   ROUTES.FORGOT_PASSWORD,
   ROUTES.RESET_PASSWORD,
+  ROUTES.ADMIN_LOGIN,
 ]
 
 /** Default landing path for a signed-in role (ops staff → desk, not storefront). */
@@ -109,7 +112,7 @@ export function resolvePostAuthPath(user, from, intent) {
 
   if (isStaff) {
     if (
-      dest.startsWith(ROUTES.ADMIN) ||
+      (dest.startsWith(ROUTES.ADMIN) && dest !== ROUTES.ADMIN_LOGIN) ||
       dest.startsWith(ROUTES.SELLER)
     ) {
       return dest
@@ -125,7 +128,8 @@ export function postCheckoutLoginState() {
   return {
     needAddress: true,
     resumeCheckout: true,
-    checkoutHint: 'Add your PahadLink delivery address, then open your bag to checkout.',
+    checkoutHint:
+      'Add your current location and delivery address, then continue to checkout. Mobile number is required on the checkout page before placing the order.',
   }
 }
 

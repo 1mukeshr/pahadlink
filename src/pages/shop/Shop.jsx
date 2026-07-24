@@ -5,6 +5,7 @@ import Footer from '../../components/layout/Footer'
 import ProductCard from '../../components/products/ProductCard'
 import { CloseIcon, SearchIcon, ArrowLeftIcon, ChevronDownIcon } from '../../components/icons'
 import { ROUTES } from '../../config'
+import { useShop } from '../../context/ShopContext'
 import {
   categoryGroups,
   getAllSizes,
@@ -12,11 +13,28 @@ import {
   getProductMaxPrice,
   getProductMinPrice,
   getProductVariants,
+  isProductInStock,
+  isVariantInStock,
   productMatchesPrice,
   productTabs,
   products,
   scoreProductMatch,
 } from '../../data/siteData'
+
+const STOCK_OPTIONS = [
+  { id: 'in', label: 'In stock' },
+  { id: 'out', label: 'Out of stock' },
+]
+
+const productMatchesStock = (product, stock, sizes = []) => {
+  if (!stock) return true
+  const available = sizes.length
+    ? sizes.some((size) => isVariantInStock(product, size))
+    : isProductInStock(product)
+  if (stock === 'in') return available
+  if (stock === 'out') return !available
+  return true
+}
 
 const SORT_OPTIONS = [
   { value: 'featured', label: 'Featured' },
@@ -81,6 +99,7 @@ const FilterCheck = ({
 const FILTER_SECTIONS = [
   { id: 'category', label: 'Category' },
   { id: 'collection', label: 'Collection' },
+  { id: 'availability', label: 'Availability' },
   { id: 'size', label: 'Size' },
   { id: 'price', label: 'Price' },
 ]
@@ -93,6 +112,7 @@ const ShopFilters = ({
   onToggleCategory,
   onToggleTag,
   onToggleSize,
+  onSelectStock,
   onClearAll,
   onApplyPrice,
   onSelectPricePreset,
@@ -104,6 +124,7 @@ const ShopFilters = ({
   const [openSections, setOpenSections] = useState({
     category: true,
     collection: true,
+    availability: true,
   })
 
   const activePreset = PRICE_PRESETS.find(
@@ -183,6 +204,26 @@ const ShopFilters = ({
                           label={tab.label}
                           count={counts.tag[tab.id] || 0}
                           onChange={() => onToggleTag(tab.id)}
+                        />
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+
+              {section.id === 'availability' && (
+                <ul className="shop-filter-checks">
+                  {STOCK_OPTIONS.map((option) => {
+                    const checked = filters.stock === option.id
+                    return (
+                      <li key={option.id}>
+                        <FilterCheck
+                          checked={checked}
+                          label={option.label}
+                          count={counts.stock[option.id] || 0}
+                          onChange={() =>
+                            onSelectStock(checked ? '' : option.id)
+                          }
                         />
                       </li>
                     )
@@ -275,6 +316,7 @@ const ShopFilters = ({
 }
 
 const Shop = () => {
+  const { stockTick } = useShop()
   const [searchParams, setSearchParams] = useSearchParams()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [chipsOpen, setChipsOpen] = useState(false)
@@ -293,6 +335,10 @@ const Shop = () => {
       min: searchParams.get('min') || '',
       max: searchParams.get('max') || '',
       tags: parseList(searchParams.get('tag')),
+      stock: (() => {
+        const value = searchParams.get('stock') || ''
+        return value === 'in' || value === 'out' ? value : ''
+      })(),
       sort: searchParams.get('sort') || 'featured',
     }),
     [searchParams]
@@ -381,6 +427,10 @@ const Shop = () => {
     setParam('size', next.join(','))
   }
 
+  const selectStock = (value) => {
+    setParam('stock', value === 'in' || value === 'out' ? value : '')
+  }
+
   const clearAll = () => {
     beginFilterLoading()
     setSearchParams({}, { replace: true })
@@ -419,6 +469,7 @@ const Shop = () => {
     const sub = {}
     const tag = {}
     const size = {}
+    const stock = { in: 0, out: 0 }
 
     categoryGroups.forEach((g) => {
       category[g.id] = products.filter((p) => p.categoryId === g.id).length
@@ -432,10 +483,14 @@ const Shop = () => {
       p.sizes.forEach((s) => {
         size[s] = (size[s] || 0) + 1
       })
+      if (isProductInStock(p)) stock.in += 1
+      else stock.out += 1
     })
 
-    return { category, sub, tag, size }
-  }, [])
+    return { category, sub, tag, size, stock }
+    // stockTick refreshes live inventory overlay counts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stockTick])
 
   const list = useMemo(() => {
     let result = [...products]
@@ -484,6 +539,12 @@ const Shop = () => {
       )
     }
 
+    if (filters.stock) {
+      result = result.filter((p) =>
+        productMatchesStock(p, filters.stock, filters.sizes)
+      )
+    }
+
     switch (filters.sort) {
       case 'price-asc':
         result.sort((a, b) => getProductMinPrice(a) - getProductMinPrice(b))
@@ -502,7 +563,9 @@ const Shop = () => {
     }
 
     return result
-  }, [filters])
+    // stockTick refreshes availability when live inventory updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, stockTick])
 
   const chips = useMemo(() => {
     const items = []
@@ -530,6 +593,13 @@ const Shop = () => {
     filters.sizes.forEach((size) => {
       items.push({ key: `size:${size}`, label: size, group: 'Size' })
     })
+    if (filters.stock === 'in' || filters.stock === 'out') {
+      items.push({
+        key: 'stock',
+        label: filters.stock === 'in' ? 'In stock' : 'Out of stock',
+        group: 'Availability',
+      })
+    }
     if (filters.min !== '' || filters.max !== '') {
       const minLabel = filters.min !== '' ? `₹${filters.min}` : `₹${bounds.min}`
       const maxLabel = filters.max !== '' ? `₹${filters.max}` : `₹${bounds.max}`
@@ -592,6 +662,10 @@ const Shop = () => {
       setDraftMax('')
       return
     }
+    if (key === 'stock') {
+      setParam('stock', '')
+      return
+    }
     setParam(key, '')
   }
 
@@ -646,6 +720,7 @@ const Shop = () => {
       onToggleCategory={toggleCategory}
       onToggleTag={toggleTag}
       onToggleSize={toggleSize}
+      onSelectStock={selectStock}
       onClearAll={clearAll}
       onApplyPrice={applyPrice}
       onSelectPricePreset={selectPricePreset}

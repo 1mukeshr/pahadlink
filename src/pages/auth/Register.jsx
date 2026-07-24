@@ -57,33 +57,43 @@ const Register = () => {
   const onSubmit = async (e) => {
     e.preventDefault()
     setMessage('')
+    setError?.(null)
 
     if (!form.terms) {
       setMessage('Please accept the Terms & Conditions')
       return
     }
 
-    if (form.password.length < PASSWORD_MIN_LENGTH) {
+    const name = form.name.trim()
+    const email = form.email.trim().toLowerCase()
+    const password = form.password
+
+    if (!name) {
+      setMessage('Please enter your full name')
+      return
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMessage('Please enter a valid email address')
+      return
+    }
+
+    if (password.length < PASSWORD_MIN_LENGTH) {
       setMessage(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
       return
     }
 
-    const email = form.email.trim().toLowerCase()
-    const username =
-      email.split('@')[0].replace(/[^a-z0-9._-]/gi, '').slice(0, 24) || 'user'
-
     setSubmitting(true)
     try {
-      const user = await register({
-        name: form.name.trim(),
-        email,
-        username,
-        password: form.password,
-      })
+      const user = await register({ name, email, password })
+      if (!user?.id && !user?.email) {
+        throw new Error('Account created but session is missing. Please sign in.')
+      }
       goAfterAuth(user)
     } catch (err) {
-      setMessage(err.message)
-      setError?.(err.message)
+      const text = err?.message || 'Registration failed. Please try again.'
+      setMessage(text)
+      setError?.(text)
     } finally {
       setSubmitting(false)
     }
@@ -103,37 +113,29 @@ const Register = () => {
   }
 
   return (
-    <AuthLayout
-      title="Create your account"
-      subtitle={
-        isCheckoutIntent
-          ? 'Create an account — then add your delivery address on Home'
-          : 'Join PahadLink for authentic Himalayan goods'
-      }
-    >
+    <AuthLayout title="Create your account">
       <form className="auth-form" onSubmit={onSubmit} noValidate>
-        {isCheckoutIntent && (
-          <p className="auth-alert auth-alert--info" role="status">
-            After signup you’ll land on Home. Add your delivery address, then
-            open your bag to checkout.
+        {message ? (
+          <p className="auth-alert auth-alert--error" role="alert">
+            {message}
           </p>
-        )}
-        {message && <p className="auth-alert auth-alert--error">{message}</p>}
+        ) : null}
 
         <div className="form-field">
           <div className="input-wrapper">
             <UserIcon className="input-icon" size={18} />
             <input
               type="text"
-              placeholder="Your full name"
-              id="fullname"
+              placeholder=" "
+              id="name"
               name="name"
               autoComplete="name"
               value={form.name}
               onChange={onChange}
               required
+              disabled={submitting}
             />
-            <label htmlFor="fullname">Full name</label>
+            <label htmlFor="name">Full name</label>
           </div>
         </div>
 
@@ -142,13 +144,14 @@ const Register = () => {
             <MailIcon className="input-icon" size={18} />
             <input
               type="email"
-              placeholder="you@example.com"
+              placeholder=" "
               id="email"
               name="email"
               autoComplete="email"
               value={form.email}
               onChange={onChange}
               required
+              disabled={submitting}
             />
             <label htmlFor="email">Email</label>
           </div>
@@ -158,11 +161,12 @@ const Register = () => {
           id="reg-password"
           name="password"
           label="Password"
-          placeholder="Min. 6 characters"
+          placeholder=" "
           autoComplete="new-password"
           value={form.password}
           onChange={onChange}
-          minLength={6}
+          minLength={PASSWORD_MIN_LENGTH}
+          disabled={submitting}
         />
 
         <label className="remember-me terms-check">
@@ -171,10 +175,16 @@ const Register = () => {
             name="terms"
             checked={form.terms}
             onChange={onChange}
-            required
+            disabled={submitting}
           />
           <span>
-            I agree to the <a href="#">Terms &amp; Conditions</a>
+            I agree to the{' '}
+            <Link
+              to={ROUTES.TERMS}
+              onClick={(e) => e.stopPropagation()}
+            >
+              Terms &amp; Conditions
+            </Link>
           </span>
         </label>
 

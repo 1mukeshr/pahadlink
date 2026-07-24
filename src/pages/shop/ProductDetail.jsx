@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import Breadcrumb from '../../components/layout/Breadcrumb'
 import Footer from '../../components/layout/Footer'
 import ProductCard from '../../components/products/ProductCard'
@@ -21,7 +21,12 @@ import {
   getStockStatus,
   getVariantBySize,
 } from '../../data/siteData'
+import { useAuth } from '../../context/AuthContext'
 import { useShop } from '../../context/ShopContext'
+import {
+  hasCompleteShippingAddress,
+  requestOpenAddressPicker,
+} from '../../utils/locationStorage'
 import { fetchProductReviews } from '../../services/reviewService'
 
 const RELATED_VISIBLE = 5
@@ -30,6 +35,8 @@ const formatPrice = (n) => `₹${n.toLocaleString('en-IN')}`
 
 const ProductDetail = () => {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const product = useMemo(() => getProductById(id), [id])
   const related = useMemo(
     () => (product ? getRelatedProducts(product, 10) : []),
@@ -295,6 +302,35 @@ const ProductDetail = () => {
     addedTimer.current = setTimeout(() => setJustAdded(false), 1600)
   }
 
+  const handleBuyNow = () => {
+    if (!canAdd) return
+    const addQty = Math.min(qty, maxQty)
+    const ok = addToCart(product, {
+      size: selected.size,
+      qty: addQty,
+      price: selected.price,
+      open: false,
+    })
+    if (ok === false) return
+
+    if (!isAuthenticated) {
+      navigate(ROUTES.LOGIN, {
+        state: { from: ROUTES.CHECKOUT, intent: 'checkout' },
+      })
+      return
+    }
+    if (!hasCompleteShippingAddress()) {
+      navigate(ROUTES.HOME)
+      requestOpenAddressPicker({
+        message:
+          'Add your current location and delivery address, then continue to checkout.',
+        resumeCheckout: true,
+      })
+      return
+    }
+    navigate(ROUTES.CHECKOUT)
+  }
+
   const breadcrumbItems = [
     { label: 'Shop', to: ROUTES.SHOP },
     {
@@ -544,7 +580,7 @@ const ProductDetail = () => {
                 <button
                   type="button"
                   className="product-detail__buy"
-                  onClick={() => handleAdd(true)}
+                  onClick={handleBuyNow}
                   disabled={!canAdd}
                 >
                   Buy now
@@ -563,7 +599,7 @@ const ProductDetail = () => {
               <ul className="product-detail__trust">
                 <li>
                   <TruckIcon size={16} />
-                  Free shipping above ₹499
+                  Free delivery on first order · later from ₹39
                 </li>
                 <li>
                   <ShieldIcon size={16} />

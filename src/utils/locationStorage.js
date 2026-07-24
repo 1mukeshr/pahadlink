@@ -1,4 +1,5 @@
 import { STORAGE } from '../config'
+import { isCompleteDeliveryLocation } from './checkoutValidation'
 
 export const LOCATION_EVENT = 'pahadlink:location'
 export const ADDRESSES_EVENT = 'pahadlink:addresses'
@@ -391,24 +392,44 @@ export function getPreferredDeliveryAddress() {
   return list[0] || null
 }
 
-/** True when shipping address has street, city, and 6-digit pin */
+/** True when delivery location has street, city, state, and 6-digit pin (phone at checkout). */
 export function hasCompleteShippingAddress(loc = getPreferredDeliveryAddress()) {
-  const isComplete = (entry) => {
-    if (!entry) return false
-    const line1 = String(entry.line1 || entry.address || '').trim()
-    const city = String(entry.city || '').trim()
-    const pin = String(entry.pin || entry.pincode || '')
-      .replace(/\D/g, '')
-      .slice(0, 6)
-    return line1.length >= 4 && Boolean(city) && /^\d{6}$/.test(pin)
-  }
-
-  if (isComplete(loc)) return true
+  if (isCompleteDeliveryLocation(loc)) return true
 
   try {
     const raw = localStorage.getItem(STORAGE.CHECKOUT_ADDRESS)
     if (!raw) return false
-    return isComplete(JSON.parse(raw))
+    return isCompleteDeliveryLocation(JSON.parse(raw))
+  } catch {
+    return false
+  }
+}
+
+const RESUME_CHECKOUT_KEY = 'pahadlink_resume_checkout'
+
+/** Remember that checkout should continue after location/address is saved */
+export function markResumeCheckout() {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.setItem(RESUME_CHECKOUT_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearResumeCheckout() {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.removeItem(RESUME_CHECKOUT_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+export function shouldResumeCheckout() {
+  if (typeof window === 'undefined') return false
+  try {
+    return sessionStorage.getItem(RESUME_CHECKOUT_KEY) === '1'
   } catch {
     return false
   }
@@ -416,12 +437,13 @@ export function hasCompleteShippingAddress(loc = getPreferredDeliveryAddress()) 
 
 export function requestOpenAddressPicker(detail = {}) {
   if (typeof window === 'undefined') return
+  if (detail.resumeCheckout) markResumeCheckout()
   window.dispatchEvent(
     new CustomEvent(OPEN_ADDRESS_EVENT, {
       detail: {
         message:
           detail.message ||
-          'Add a complete PahadLink delivery address to continue checkout.',
+          'Add your current location and delivery address to continue checkout.',
         ...detail,
       },
     })
@@ -506,7 +528,7 @@ export function locationToCheckoutFields(location) {
     }
   }
   const loc = normalizeLocation(location)
-  const street = [loc.line1, loc.floor ? `Floor ${loc.floor}` : '']
+  const street = [loc.line1, loc.floor ? `Floor ${loc.floor}` : '', loc.area]
     .filter(Boolean)
     .join(', ')
   return {
@@ -516,7 +538,7 @@ export function locationToCheckoutFields(location) {
     pincode: loc.pin || '',
     name: loc.name || '',
     phone: loc.phone || '',
-    landmark: [loc.landmark, loc.area].filter(Boolean).join(' · '),
+    landmark: loc.landmark || '',
     addressId: loc.id || '',
     tag: loc.tag || 'Home',
   }

@@ -432,6 +432,7 @@ export function RevenueSparkline({ points, series, period = 'week', height = 176
 }
 
 /** Horizontal ranking bars — payments, categories, stock, sources */
+/** Horizontal bars — category / ranking rows */
 export function HorizontalBars({
   rows = [],
   valueFormat,
@@ -441,7 +442,7 @@ export function HorizontalBars({
 }) {
   const [tip, setTip] = useState(null)
   const list = rows.slice(0, maxItems)
-  const max = Math.max(1, ...list.map((r) => Number(r.value) || 0))
+  const total = list.reduce((s, r) => s + (Number(r.value) || 0), 0)
   const format = valueFormat || ((n) => String(n))
 
   if (!list.length) {
@@ -454,10 +455,12 @@ export function HorizontalBars({
       onMouseLeave={() => setTip(null)}
     >
       <ul className="admin-hbar">
-        {list.map((row) => {
+        {list.map((row, index) => {
           const value = Number(row.value) || 0
-          const pct = Math.round((value / max) * 100)
-          const tipLabel = `${row.label}: ${format(value)}`
+          const share = total ? Math.round((value / total) * 100) : 0
+          const tipLabel = `${row.label}: ${format(value)}${
+            row.out ? ` · ${row.out} out` : ''
+          }`
           const interactive = Boolean(onSelect && row.key)
           const Tag = interactive ? 'button' : 'div'
           return (
@@ -469,19 +472,20 @@ export function HorizontalBars({
                 onMouseMove={(e) => setTip(tipFromEvent(e, tipLabel))}
                 onMouseLeave={() => setTip(null)}
               >
-                <span className="admin-hbar__label" title={row.label}>
-                  {row.label}
+                <span className="admin-hbar__rank" aria-hidden="true">
+                  {index + 1}
                 </span>
-                <div className="admin-hbar__track" aria-hidden="true">
-                  <div
-                    className="admin-hbar__fill"
-                    style={{
-                      width: `${Math.max(4, pct)}%`,
-                      background: row.color || undefined,
-                    }}
-                  />
+                <div className="admin-hbar__body">
+                  <div className="admin-hbar__top">
+                    <span className="admin-hbar__label" title={row.label}>
+                      {row.label}
+                    </span>
+                    <strong className="admin-hbar__value">
+                      {format(value)}
+                      <em>{share}%</em>
+                    </strong>
+                  </div>
                 </div>
-                <strong className="admin-hbar__value">{format(value)}</strong>
               </Tag>
             </li>
           )
@@ -550,43 +554,54 @@ export function StockHealthBar({ ok = 0, low = 0, out = 0 }) {
   }
 
   const segs = [
-    { key: 'ok', label: 'In stock', value: ok, color: '#0a4f33' },
-    { key: 'low', label: 'Low', value: low, color: '#b86a12' },
-    { key: 'out', label: 'Out', value: out, color: '#c0394f' },
-  ].filter((s) => s.value > 0)
+    { key: 'ok', label: 'In stock', value: ok, color: '#0a4f33', soft: '#e7f3ec' },
+    { key: 'low', label: 'Low', value: low, color: '#b86a12', soft: '#fff4e5' },
+    { key: 'out', label: 'Out', value: out, color: '#c0394f', soft: '#fdecef' },
+  ]
+  const healthyPct = Math.round((ok / total) * 100)
 
   return (
     <div
       className="admin-chart admin-chart--stock"
       onMouseLeave={() => setTip(null)}
     >
-      <div className="admin-stock-bar" role="img" aria-label="Inventory health">
+      <div className="admin-stock-hero">
+        <div className="admin-stock-hero__main">
+          <em>Products tracked</em>
+          <strong>{total}</strong>
+        </div>
+        <div
+          className={`admin-stock-hero__health${
+            healthyPct >= 70 ? ' is-good' : healthyPct >= 40 ? ' is-warn' : ' is-bad'
+          }`}
+        >
+          <em>Healthy</em>
+          <strong>{healthyPct}%</strong>
+        </div>
+      </div>
+
+      <ul className="admin-stock-bar__legend">
         {segs.map((seg) => {
-          const pct = Math.round((seg.value / total) * 100)
+          const pct = total ? Math.round((seg.value / total) * 100) : 0
           return (
-            <div
+            <li
               key={seg.key}
-              className="admin-stock-bar__seg"
-              style={{
-                width: `${Math.max(3, (seg.value / total) * 100)}%`,
-                background: seg.color,
-              }}
+              className={`admin-stock-bar__legend-item admin-stock-bar__legend-item--${seg.key}`}
+              style={{ '--stock-soft': seg.soft, '--stock-tone': seg.color }}
               onMouseMove={(e) =>
                 setTip(tipFromEvent(e, `${seg.label}: ${seg.value} (${pct}%)`))
               }
               onMouseLeave={() => setTip(null)}
-            />
+            >
+              <span className="admin-stock-bar__legend-top">
+                <i style={{ background: seg.color }} />
+                <span>{seg.label}</span>
+              </span>
+              <strong>{seg.value}</strong>
+              <em>{pct}%</em>
+            </li>
           )
         })}
-      </div>
-      <ul className="admin-stock-bar__legend">
-        {segs.map((seg) => (
-          <li key={seg.key}>
-            <i style={{ background: seg.color }} />
-            <span>{seg.label}</span>
-            <strong>{seg.value}</strong>
-          </li>
-        ))}
       </ul>
       <ChartTip tip={tip} />
     </div>
@@ -613,18 +628,15 @@ export function KpiSpark({ values = [], labels = [], tone = 'green' }) {
       ? '#b86a12'
       : tone === 'info'
         ? '#2f6fa8'
-        : tone === 'light'
-          ? 'rgba(255,255,255,0.9)'
-          : '#0a4f33'
+        : '#0a4f33'
   const fill =
     tone === 'warn'
       ? 'rgba(184,106,18,0.14)'
       : tone === 'info'
         ? 'rgba(47,111,168,0.12)'
-        : tone === 'light'
-          ? 'rgba(255,255,255,0.16)'
-          : 'rgba(10,79,51,0.1)'
+        : 'rgba(10,79,51,0.1)'
   const area = `0,${h} ${line} ${w},${h}`
+  const asMoney = tone === 'money' || tone === 'light'
 
   return (
     <div
@@ -658,7 +670,7 @@ export function KpiSpark({ values = [], labels = [], tone = 'green' }) {
               setTip(
                 tipFromEvent(
                   e,
-                  `${p.label}: ${tone === 'light' ? formatInr(p.n) : p.n}`
+                  `${p.label}: ${asMoney ? formatInr(p.n) : p.n}`
                 )
               )
             }

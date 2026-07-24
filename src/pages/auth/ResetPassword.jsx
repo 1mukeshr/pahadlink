@@ -38,10 +38,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <AuthLayout
-      title="Reset password"
-      subtitle="Choose a new password for your account"
-    >
+    <AuthLayout title="Reset password">
       <form className="auth-form" onSubmit={onSubmit}>
         {error && <p className="auth-alert auth-alert--error">{error}</p>}
         {success && <p className="auth-alert auth-alert--success">{success}</p>}

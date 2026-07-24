@@ -14,7 +14,7 @@ export const ORDER_STATUSES = [
 
 export const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded']
 
-/** Flipkart-style fulfilment path (PahadLink) */
+/** PahadLink fulfilment path */
 export const STATUS_TRANSITIONS = {
   pending: ['confirmed', 'cancelled'],
   confirmed: ['processing', 'shipped', 'cancelled'],
@@ -74,6 +74,18 @@ const orderSchema = new mongoose.Schema(
     shippingFee: { type: Number, default: 0, min: 0 },
     discountAmount: { type: Number, default: 0, min: 0 },
     couponCode: { type: String, default: '', trim: true, uppercase: true },
+    taxableValue: { type: Number, default: 0, min: 0 },
+    gstRate: { type: Number, default: 0.05, min: 0 },
+    gstAmount: { type: Number, default: 0, min: 0 },
+    cgstAmount: { type: Number, default: 0, min: 0 },
+    sgstAmount: { type: Number, default: 0, min: 0 },
+    igstAmount: { type: Number, default: 0, min: 0 },
+    gstType: {
+      type: String,
+      enum: ['cgst_sgst', 'igst', ''],
+      default: 'cgst_sgst',
+    },
+    pricesIncludeGst: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ORDER_STATUSES,
@@ -136,6 +148,14 @@ orderSchema.methods.toSafeJSON = function toSafeJSON() {
     shippingFee: this.shippingFee,
     discountAmount: this.discountAmount,
     couponCode: this.couponCode,
+    taxableValue: this.taxableValue,
+    gstRate: this.gstRate,
+    gstAmount: this.gstAmount,
+    cgstAmount: this.cgstAmount,
+    sgstAmount: this.sgstAmount,
+    igstAmount: this.igstAmount,
+    gstType: this.gstType,
+    pricesIncludeGst: this.pricesIncludeGst === true,
     status: this.status,
     paymentStatus: this.paymentStatus,
     paymentMethod: this.paymentMethod,

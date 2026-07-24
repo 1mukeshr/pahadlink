@@ -28,7 +28,7 @@ async function seed() {
   }
 
   console.log({
-    database: 'Pahadi_link',
+    database: 'Pahadi_link_DB',
     email,
     username,
     password,

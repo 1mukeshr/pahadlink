@@ -1,8 +1,8 @@
 import mongoose from 'mongoose'
 import { fileUserStore } from '../store/fileUserStore.js'
 
-const DEFAULT_URI = 'mongodb://127.0.0.1:27017/Pahadi_link'
-const DEFAULT_DB_NAME = 'Pahadi_link'
+const DEFAULT_URI = 'mongodb://127.0.0.1:27017/Pahadi_link_DB'
+const DEFAULT_DB_NAME = 'Pahadi_link_DB'
 
 export function getMongoUri() {
   return process.env.MONGODB_URI || DEFAULT_URI
@@ -13,6 +13,8 @@ export function getMongoDbName() {
 }
 
 export function isFileDbMode() {
+  // Live Mongo always wins over a previous file-store fallback
+  if (mongoose.connection.readyState === 1) return false
   return fileUserStore.enabled
 }
 
@@ -31,6 +33,11 @@ export async function connectDB() {
     return null
   }
 
+  // Already connected
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection
+  }
+
   const uri = getMongoUri()
   mongoose.set('strictQuery', true)
 
@@ -42,6 +49,12 @@ export async function connectDB() {
 
     const { host, port, name } = mongoose.connection
     console.log(`MongoDB connected → ${host}:${port}/${name}`)
+
+    // Prefer Mongo going forward if we had temporarily used file store
+    if (fileUserStore.enabled) {
+      fileUserStore.enabled = false
+      console.log('Switched auth store from file → MongoDB')
+    }
 
     mongoose.connection.on('error', (err) => {
       console.error('MongoDB error:', err.message)

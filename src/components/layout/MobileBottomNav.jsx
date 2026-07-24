@@ -44,7 +44,7 @@ const MobileBottomNav = () => {
       : isSeller
         ? 'Seller'
         : user?.name?.split(' ')[0] || user?.username || 'Account'
-    : 'Login'
+    : 'Account'
   const shopActive =
     pathname === ROUTES.SHOP ||
     pathname.startsWith('/category/') ||

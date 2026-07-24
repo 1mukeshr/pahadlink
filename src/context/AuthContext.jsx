@@ -95,7 +95,19 @@ export function AuthProvider({ children }) {
           writeStore(token, me, rememberMe)
         }
       } catch {
-        if (!cancelled) clearSession()
+        // Keep the session from login/register if /me briefly fails —
+        // wiping it makes email signup look broken.
+        if (!cancelled) {
+          const hasCachedUser = Boolean(
+            localStorage.getItem(STORAGE.USER) ||
+              sessionStorage.getItem(STORAGE.USER)
+          )
+          if (!hasCachedUser) {
+            clearStore()
+            setToken(null)
+            setUser(null)
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -104,7 +116,7 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true
     }
-  }, [token, clearSession, rememberMe])
+  }, [token, rememberMe])
 
   const login = useCallback(
     async (credentials) => {
@@ -127,9 +139,12 @@ export function AuthProvider({ children }) {
       const data = await registerUser({
         name: payload.name?.trim(),
         email: payload.email?.trim().toLowerCase(),
-        username: payload.username?.trim().toLowerCase(),
+        username: payload.username?.trim().toLowerCase() || undefined,
         password: payload.password,
       })
+      if (!data?.token || !data?.user) {
+        throw new Error('Registration failed — no session returned from server')
+      }
       persistSession(data.token, data.user, { remember: true })
       return data.user
     },
@@ -139,10 +154,16 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = useCallback(async () => {
     setError(null)
     const { idToken } = await signInWithGoogleFirebase()
-    const data = await googleLoginApi(idToken)
-    if (data.token && data.user) {
-      persistSession(data.token, data.user, { remember: true })
+    if (!idToken) {
+      throw new Error('Google sign-in did not return a token. Try again.')
     }
+    const data = await googleLoginApi(idToken)
+    if (!data?.token || !data?.user) {
+      throw new Error(
+        'Google sign-in failed — account was not saved. Check API/MongoDB and try again.'
+      )
+    }
+    persistSession(data.token, data.user, { remember: true })
     return data.user
   }, [persistSession])
 

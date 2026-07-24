@@ -15,7 +15,7 @@ export const ORDER_STATUSES = [
 
 export const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded']
 
-/** Customer-facing labels — Flipkart-style steps, PahadLink branded */
+/** Customer-facing labels */
 export const STATUS_LABELS = {
   pending: 'Order Placed',
   confirmed: 'Confirmed',
@@ -28,46 +28,56 @@ export const STATUS_LABELS = {
   returned: 'Returned',
 }
 
-/** Horizontal tracker steps (customer Orders detail) */
+/**
+ * Delivery tracker steps:
+ * Order Placed → Confirmed → Packed → Shipped → Out for delivery → Delivered
+ */
 export const DELIVERY_FLOW_STEPS = [
   {
     key: 'pending',
-    label: 'Placed',
+    label: 'Order Placed',
     shortLabel: 'Placed',
-    hint: 'PahadLink received your order',
+    hint: 'Your order has been placed',
+    matchStatuses: ['pending'],
   },
   {
     key: 'confirmed',
     label: 'Confirmed',
     shortLabel: 'Confirmed',
-    hint: 'Seller confirmed your order',
+    hint: 'Your order is confirmed',
+    matchStatuses: ['confirmed'],
   },
   {
     key: 'processing',
     label: 'Packed',
     shortLabel: 'Packed',
-    hint: 'Packed and ready to ship',
+    hint: 'Your item has been packed',
+    matchStatuses: ['processing'],
   },
   {
     key: 'shipped',
     label: 'Shipped',
     shortLabel: 'Shipped',
-    hint: 'Package handed to courier',
+    hint: 'Package is on the way',
+    matchStatuses: ['shipped'],
   },
   {
     key: 'out_for_delivery',
-    label: 'Out',
-    shortLabel: 'Out',
-    hint: 'Courier is on the way to you',
+    label: 'Out for delivery',
+    shortLabel: 'Out for delivery',
+    hint: 'Arriving today',
+    matchStatuses: ['out_for_delivery'],
   },
   {
     key: 'delivered',
     label: 'Delivered',
     shortLabel: 'Delivered',
-    hint: 'Delivered successfully',
+    hint: 'Package delivered',
+    matchStatuses: ['delivered'],
   },
 ]
 
+/** Map internal status → tracker index */
 export const DELIVERY_FLOW_INDEX = {
   pending: 0,
   confirmed: 1,
@@ -83,13 +93,13 @@ export const DELIVERY_FLOW_INDEX = {
 export function deliveryHeadline(status) {
   switch (String(status || '').toLowerCase()) {
     case 'pending':
-      return 'Order placed with PahadLink'
+      return 'Order Placed'
     case 'confirmed':
-      return 'Your order is confirmed'
+      return 'Confirmed'
     case 'processing':
-      return 'Your order is packed'
+      return 'Packed'
     case 'shipped':
-      return 'Your order has been shipped'
+      return 'Shipped'
     case 'out_for_delivery':
       return 'Out for delivery'
     case 'delivered':
@@ -106,8 +116,11 @@ export function deliveryHeadline(status) {
 }
 
 export function deliveryHint(status) {
-  const step = DELIVERY_FLOW_STEPS.find((s) => s.key === status)
-  return step?.hint || STATUS_LABELS[status] || ''
+  const key = String(status || '').toLowerCase()
+  const step = DELIVERY_FLOW_STEPS.find(
+    (s) => s.key === key || (s.matchStatuses || []).includes(key)
+  )
+  return step?.hint || STATUS_LABELS[key] || ''
 }
 
 export const PAYMENT_STATUS_LABELS = {
@@ -134,8 +147,9 @@ export function paymentStatusLabel(order) {
 }
 
 /**
- * Build Flipkart-style activity from live timeline + current status.
- * Fills missing steps so progress is never a single static "placed" row.
+ * Build PahadLink delivery activity from live timeline + current status.
+ * Always returns every delivery step so the tracker can show full progress
+ * (past filled, current active, upcoming muted).
  */
 export function buildDeliveryActivity(order) {
   if (!order) return []
@@ -146,8 +160,12 @@ export function buildDeliveryActivity(order) {
     return [
       {
         status: 'cancelled',
+        label: STATUS_LABELS.cancelled,
         note: cancel?.note || 'Order cancelled',
         at: cancel?.at || order.updatedAt || order.createdAt,
+        isPast: true,
+        isCurrent: true,
+        isUpcoming: false,
       },
     ]
   }
@@ -162,40 +180,48 @@ export function buildDeliveryActivity(order) {
     byStatus.set(String(ev.status).toLowerCase(), ev)
   }
 
-  const currentIdx = DELIVERY_FLOW_INDEX[status]
-  if (currentIdx == null || currentIdx < 0) {
-    return apiEvents.map((ev) => ({
-      status: ev.status,
-      note: ev.note || STATUS_LABELS[ev.status] || deliveryHeadline(ev.status),
-      at: ev.at,
-    }))
-  }
+  let currentIdx = DELIVERY_FLOW_INDEX[status]
+  if (currentIdx == null || currentIdx < 0) currentIdx = 0
 
-  const built = []
-  for (let i = 0; i <= currentIdx; i += 1) {
-    const step = DELIVERY_FLOW_STEPS[i]
-    const hit = byStatus.get(step.key)
+  const built = DELIVERY_FLOW_STEPS.map((step, i) => {
+    const matches = step.matchStatuses || [step.key]
+    let hit = null
+    for (const key of matches) {
+      const found = byStatus.get(key)
+      if (found) {
+        hit = found
+        break
+      }
+    }
+    const isPast = i < currentIdx
     const isCurrent = i === currentIdx
-    // Prefer real timeline timestamps; avoid inventing same createdAt for every step
+    const isUpcoming = i > currentIdx
     let at = hit?.at || null
     if (!at && i === 0) at = order.createdAt || null
     if (!at && isCurrent) at = order.updatedAt || order.createdAt || null
-    built.push({
+    return {
       status: step.key,
+      label: step.label,
+      hint: step.hint,
       note: hit?.note || step.hint || STATUS_LABELS[step.key],
       at,
+      isPast,
       isCurrent,
-    })
-  }
+      isUpcoming,
+    }
+  })
 
-  // Append return events after delivery if present
   for (const key of ['return_requested', 'returned']) {
     const hit = byStatus.get(key)
     if (hit) {
       built.push({
         status: key,
+        label: STATUS_LABELS[key],
         note: hit.note || STATUS_LABELS[key],
         at: hit.at,
+        isPast: key === 'returned',
+        isCurrent: status === key,
+        isUpcoming: false,
       })
     }
   }
@@ -216,6 +242,14 @@ export function mapApiOrderToUi(order) {
     shipping: order.shippingFee,
     discount: order.discountAmount,
     couponCode: order.couponCode || '',
+    taxableValue: order.taxableValue,
+    gstRate: order.gstRate,
+    gstAmount: order.gstAmount,
+    cgstAmount: order.cgstAmount,
+    sgstAmount: order.sgstAmount,
+    igstAmount: order.igstAmount,
+    gstType: order.gstType,
+    pricesIncludeGst: order.pricesIncludeGst === true,
     itemCount: (order.items || []).reduce((s, i) => s + (i.quantity || 1), 0),
     items: (order.items || []).map((item) => {
       const productId = item.productId || ''
@@ -290,6 +324,14 @@ export async function validateCoupon({ code, subtotal, email }) {
     email,
   })
   return data
+}
+
+/** True for every customer until they place a non-cancelled order */
+export async function fetchFirstOrderStatus(email = '') {
+  const { data } = await api.get('/coupons/first-order', {
+    params: email ? { email } : undefined,
+  })
+  return Boolean(data?.isFirstOrder)
 }
 
 export async function updateOrder(id, payload) {

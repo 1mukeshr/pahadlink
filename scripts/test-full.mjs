@@ -7,6 +7,7 @@ import {
   calcShipping,
   FREE_SHIP_AT,
   SHIPPING_FEE,
+  FIRST_ORDER_DISCOUNT,
 } from '../shared/coupons.js'
 import { resolveUnitPrice, PRODUCT_PRICING } from '../shared/catalog.js'
 import {
@@ -43,16 +44,21 @@ async function api(path, opts) {
 
 async function main() {
   // --- shared domain ---
-  if (PRODUCT_PRICING.length !== 13) bad('catalog.count', PRODUCT_PRICING.length)
-  else ok('catalog.count=13')
+  if (PRODUCT_PRICING.length !== 14) bad('catalog.count', PRODUCT_PRICING.length)
+  else ok('catalog.count=14')
+
+  if (!PRODUCT_PRICING.some((p) => p.id === 'pahadi-pichodi')) {
+    bad('catalog.pichodi', 'missing pahadi-pichodi')
+  } else ok('catalog.pichodi')
 
   const priced = resolveUnitPrice('pahadi-rajma', '1 kg')
   if (!priced || priced.price !== 479) bad('catalog.price', JSON.stringify(priced))
   else ok('catalog.price')
 
   const c1 = applyCoupon(1000, 'PAHAD15', { isFirstOrder: true })
-  if (!c1.ok || c1.discount !== 150) bad('coupon.PAHAD15', JSON.stringify(c1))
-  else ok('coupon.PAHAD15')
+  if (!c1.ok || c1.discount !== FIRST_ORDER_DISCOUNT) {
+    bad('coupon.PAHAD15', JSON.stringify(c1))
+  } else ok('coupon.PAHAD15')
 
   if (applyCoupon(1000, 'PAHAD15', { isFirstOrder: false }).ok) {
     bad('coupon.firstOnly', 'should reject')
@@ -63,6 +69,10 @@ async function main() {
 
   if (calcShipping(498) !== SHIPPING_FEE) bad('ship.fee', String(calcShipping(498)))
   else ok('ship.fee')
+
+  if (calcShipping(200, { isFirstOrder: true }) !== 0) {
+    bad('ship.firstFree', String(calcShipping(200, { isFirstOrder: true })))
+  } else ok('ship.firstFree')
 
   if (calcShipping(FREE_SHIP_AT) !== 0) bad('ship.free', String(calcShipping(FREE_SHIP_AT)))
   else ok('ship.free')

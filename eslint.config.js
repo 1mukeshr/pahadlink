@@ -18,6 +18,11 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Data-fetch / URL-sync effects are intentional in this app
+      'react-hooks/set-state-in-effect': 'off',
+      'react-refresh/only-export-components': 'warn',
+    },
   },
   // Backend + shared domain + root scripts (Node)
   {
