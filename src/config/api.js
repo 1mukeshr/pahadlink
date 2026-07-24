@@ -73,11 +73,11 @@ function collectApiCandidates(data) {
     list.push(url)
   }
 
-  // Prefer stable hosts first (apiUrl / env), then optional apiUrls list
-  push(data?.apiUrl)
-  push(import.meta.env.VITE_API_URL)
+  // Primary runtime apiUrl is always allowed (may be a temporary tunnel while Render is down)
+  push(data?.apiUrl, { allowEphemeral: true })
+  push(import.meta.env.VITE_API_URL, { allowEphemeral: true })
   if (Array.isArray(data?.apiUrls)) {
-    data.apiUrls.forEach((value) => push(value))
+    data.apiUrls.forEach((value) => push(value, { allowEphemeral: true }))
   }
   return list
 }

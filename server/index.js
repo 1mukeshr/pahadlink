@@ -56,25 +56,17 @@ function isAllowedOrigin(origin) {
   return false
 }
 
-/*app.use(
+app.use(
   cors({
     origin: (origin, cb) => {
       if (isAllowedOrigin(origin)) return cb(null, true)
       return cb(new Error(`CORS blocked for origin: ${origin}`))
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
-)*/
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "https://1mukeshr.github.io"
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+)
 app.use(express.json({ limit: '1mb' }))
 
 function healthPayload() {
