@@ -27,18 +27,20 @@ services:
         value: Pahadi_link_DB
       - key: USE_FILE_DB
         value: "false"
+      # Allow file-store auth if Atlas is not set yet (GitHub Pages login still works)
       - key: ALLOW_FILE_DB_FALLBACK
-        value: "false"
+        value: "true"
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        value: https://1mukeshr.github.io/pahadlink-harvest
+        value: https://1mukeshr.github.io/pahadlink-harvest,https://1mukeshr.github.io
       - key: ADMIN_EMAIL
         value: admin@pahadlink.com
       - key: ADMIN_USERNAME
         value: admin
+      # Set this in Render Dashboard (required). Example: Admin@12345
       - key: ADMIN_PASSWORD
         sync: false
       - key: SMTP_HOST

@@ -49,7 +49,10 @@ api.interceptors.response.use(
         message =
           'Cannot reach local API. Keep MongoDB on and run: npm start (or npm run server).'
       } else if (hosted) {
-        message = `Cannot reach PahadLink API (${apiHost || 'not set'}). Deploy the API (e.g. Render) and set public/runtime-config.json apiUrl.`
+        message =
+          apiHost
+            ? `GitHub Pages cannot reach API (${apiHost}). Render may be stopped — open Render Dashboard and start pahadlink-api, then retry.`
+            : 'GitHub Pages API URL missing. Set public/runtime-config.json apiUrl and redeploy Pages.'
       } else {
         message = 'Cannot reach server. Start API with: npm run server'
       }
@@ -58,10 +61,13 @@ api.interceptors.response.use(
         message = 'Local API not ready. Keep MongoDB on and run: npm run server'
       } else if (hosted) {
         message =
-          'API is waking up or offline. Wait ~30s and try again (free hosts sleep).'
+          'Hosted API is waking up. Wait ~30s and try again (Render free tier sleeps).'
       } else {
         message = 'API not running. Keep MongoDB on and run: npm run server'
       }
+    } else if (status === 404 && hosted) {
+      message =
+        'Hosted API URL not found (404). Redeploy pahadlink-api on Render from pahadlink-harvest, then update runtime-config.json if the service URL changed.'
     } else if (status === 405 && hosted) {
       message =
         'API URL missing in this build. Set public/runtime-config.json apiUrl (or VITE_API_URL) and redeploy.'

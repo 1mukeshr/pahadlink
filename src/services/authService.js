@@ -36,12 +36,12 @@ export async function ensureAuthApiReady() {
         )
       }
       throw new Error(
-        'PahadLink API / database is offline. Deploy the API and check runtime-config.json apiUrl.'
+        'GitHub Pages cannot reach the hosted API. Open Render → start/redeploy pahadlink-api, then confirm /api/health returns ok.'
       )
     }
     return data
   } catch (err) {
-    if (err instanceof Error && /Database is not ready|API URL|API \/ database/i.test(err.message)) {
+    if (err instanceof Error && /Database is not ready|API URL|hosted API|GitHub Pages/i.test(err.message)) {
       throw err
     }
     if (isLocalAppHost()) {
@@ -50,7 +50,7 @@ export async function ensureAuthApiReady() {
       )
     }
     throw new Error(
-      `Cannot reach PahadLink API (${base}). Deploy the API and set public/runtime-config.json apiUrl.`
+      `GitHub Pages cannot reach API (${base}). Render service may be stopped — redeploy pahadlink-api from the pahadlink-harvest repo.`
     )
   } finally {
     window.clearTimeout(timer)
