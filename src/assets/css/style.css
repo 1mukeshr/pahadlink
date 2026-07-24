@@ -2341,7 +2341,6 @@ code {
   color: var(--primary);
 }
 
-/* Desktop: fit login/register without page scroll */
 @media (min-width: 901px) {
   #root:has(.auth-page) {
     height: 100dvh;
@@ -4384,7 +4383,6 @@ code {
     padding: 12px 16px 18px;
   }
 }
-
 
 .terms-check a {
   color: var(--primary);
@@ -7663,7 +7661,6 @@ code {
   box-shadow: 0 10px 24px rgba(230, 41, 120, 0.34);
 }
 
-/* Wishlist popup drawer */
 .wishlist-drawer {
   position: fixed;
   inset: 0;
@@ -12933,7 +12930,7 @@ code {
   height: 1px;
   background: #e5d7dd;
 }
-/* ?? Theme picker (floating) ?? */
+
 .theme-picker {
   display: none;
 }
@@ -13177,7 +13174,6 @@ code {
   color: var(--primary-dark);
 }
 
-/* —— About page —— */
 .about-page {
   background: #fff;
 }
@@ -13678,5 +13674,4 @@ code {
     transform: scale(1.04);
   }
 }
-
 

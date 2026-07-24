@@ -1,6 +1,4 @@
-/**
- * Admin / Seller platform ? clean white ops desk
- */
+
 .admin-app {
   --admin-panel: #ffffff;
   --admin-panel-2: #f7f9f8;
@@ -50,7 +48,6 @@
   min-height: 100vh;
 }
 
-/* Mobile top bar ? hidden on desktop */
 .admin-topbar {
   display: none;
 }
@@ -538,7 +535,6 @@
   text-overflow: ellipsis;
 }
 
-/* Accent KPI stays white; emphasize with green text */
 .admin-kpi__card--accent span,
 .admin-kpi__card--accent em {
   color: var(--admin-muted);
@@ -678,7 +674,7 @@
 }
 
 .admin-chart__arc {
-  /* static arcs ? no hover morph */
+
 }
 
 .admin-chart__center-value {
@@ -3362,7 +3358,6 @@
   font-size: 0.95rem;
 }
 
-/* By category ? compact list with bottom borders */
 .admin-panel--inv-chart .admin-hbar {
   gap: 0;
 }
@@ -3971,7 +3966,6 @@
   font-size: 0.86rem;
 }
 
-/* Compact polish ? clean white cards */
 .admin-app {
   --admin-radius: 12px;
   --admin-shadow: 0 1px 2px rgba(18, 36, 28, 0.04), 0 6px 16px rgba(18, 36, 28, 0.04);
@@ -4604,7 +4598,6 @@
   }
 }
 
-/* ?? Admin login (separate from storefront) ?? */
 .admin-login {
   min-height: 100vh;
   display: flex;

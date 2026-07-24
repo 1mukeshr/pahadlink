@@ -1,7 +1,5 @@
 
 
-
-
 @media (max-width: 1200px) {
     .product-grid {
       grid-template-columns: repeat(5, 1fr);
@@ -83,13 +81,13 @@
       min-width: 0;
     }
 
-    
+
 
     .header-nav-divider {
       display: none;
     }
 
-    
+
 
     .header-account {
       padding: 3px 6px 3px 3px;
@@ -481,9 +479,6 @@
     }
 }
 
-
-
-
 @media (max-width: 1024px) {
   :root {
     font-size: 16px;
@@ -586,8 +581,6 @@
     width: min(240px, calc(100vw - 24px));
   }
 }
-
-
 
 @media (max-width: 1100px) {
     .home-maker__inner {
@@ -839,7 +832,7 @@
       font-weight: 500;
     }
 
-    
+
 
     .shop-catalog__grid {
       grid-template-columns: repeat(2, 1fr);
@@ -1075,7 +1068,7 @@
       padding: 32px 20px 36px;
     }
 
-    
+
 
     .legal-panel {
       padding: 24px 18px 30px;
@@ -1127,7 +1120,7 @@
       padding-right: 20px;
     }
 
-    
+
 
     .pincode-value {
       max-width: 100%;
@@ -1141,7 +1134,7 @@
       margin-left: 8px;
     }
 
-    
+
 
     .header-account-dropdown {
       width: min(92vw, 300px);
@@ -1149,13 +1142,13 @@
       right: 0;
     }
 
-    
 
-    
 
-    
 
-    
+
+
+
+
 
     .shop-catalog__section {
       padding-top: 18px;
@@ -1173,9 +1166,6 @@
     }
 
 }
-
-
-
 
 @media (max-width: 749px) {
   :root {
@@ -1511,7 +1501,7 @@
     white-space: nowrap;
   }
 
-  
+
   .header-nav > .header-icon-link:not(.header-bag),
   .header-nav > .header-nav-divider,
   .header-nav > .header-account-menu {
@@ -1881,9 +1871,6 @@
   }
 }
 
-
-
-
 @media (hover: none), (pointer: coarse) {
   .product-detail__main-media {
     cursor: pointer;
@@ -1911,7 +1898,6 @@
     transform: scale(1.7);
   }
 }
-
 
 @media (prefers-reduced-motion: reduce) {
   .page-shell,
@@ -1945,9 +1931,6 @@
   }
 }
 
-/* =========================================================
-   Native-app mobile polish — all screens ≤749px
-   ========================================================= */
 @media (max-width: 749px) {
   :root {
     --content-pad: 14px;
@@ -2022,7 +2005,7 @@
     padding: 0 14px;
   }
 
-  /* Prevent flex/grid children from overflowing */
+
   .header-left,
   .header-center,
   .header-nav,
@@ -2040,7 +2023,7 @@
     min-width: 0;
   }
 
-  /* Auth — no iOS input zoom */
+
   .auth-form input,
   .auth-form .input-wrapper input,
   .checkout-field input,
@@ -2059,7 +2042,7 @@
     padding-right: max(14px, env(safe-area-inset-right, 0px));
   }
 
-  /* Product detail — stack CTAs cleanly */
+
   .product-detail__actions {
     flex-wrap: wrap;
     gap: 8px;
@@ -2089,7 +2072,7 @@
     font-size: 0.78rem;
   }
 
-  /* Product cards — denser but touchable */
+
   .product-grid {
     gap: 10px;
   }
@@ -2103,7 +2086,7 @@
     padding: 0 8px;
   }
 
-  /* Home sections */
+
   .home-section,
   .why-section,
   .faq-section,
@@ -2135,7 +2118,7 @@
     max-width: calc(100% - 24px);
   }
 
-  /* Checkout */
+
   .checkout-fields--2,
   .checkout-fields--3 {
     grid-template-columns: 1fr;
@@ -2154,7 +2137,7 @@
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Account / orders */
+
   .orders-head {
     flex-direction: column;
     align-items: flex-start;
@@ -2177,7 +2160,7 @@
     justify-content: center;
   }
 
-  /* Footer */
+
   .footer-grid {
     gap: 22px 12px;
   }
@@ -2186,7 +2169,7 @@
     max-width: none;
   }
 
-  /* Drawers / sheets full bleed */
+
   .bag-drawer__panel {
     width: 100%;
     max-width: 100%;
@@ -2199,32 +2182,32 @@
     min-height: 36px;
   }
 
-  /* Reviews / tabs compact panels */
+
   .product-reviews,
   .product-detail-tabs {
     padding-left: 0;
     padding-right: 0;
   }
 
-  /* Shop toolbar */
+
   .shop-toolbar__filters-btn {
     min-height: 40px;
   }
 
-  /* Support chat above bottom nav already handled */
+
   .support-chat__form button {
     min-width: 40px;
     min-height: 40px;
   }
 
-  /* Legal / contact */
+
   .legal-shell,
   .contact-page .container {
     padding-left: max(14px, env(safe-area-inset-left, 0px));
     padding-right: max(14px, env(safe-area-inset-right, 0px));
   }
 
-  /* Hide awkward hover-only chrome on touch */
+
   .product-detail__zoom-hint-hover {
     display: none;
   }
@@ -2411,7 +2394,6 @@
   }
 }
 
-/* Coarse pointer (phones/tablets) — prefer larger hit areas */
 @media (hover: none) and (pointer: coarse) {
   button,
   a.btn-hero-primary,

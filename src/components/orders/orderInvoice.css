@@ -1,4 +1,4 @@
-/* Blinkit-style clean A4 tax invoice */
+
 
 .order-invoice {
   position: fixed;
@@ -129,7 +129,6 @@
   background: #fafafa;
 }
 
-/* —— Sheet —— */
 .order-invoice__sheet {
   --inv-ink: #111827;
   --inv-body: #374151;
